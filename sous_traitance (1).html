@@ -1,0 +1,1020 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Contrôle Départ / Retour Sous-Traitance — EXALTA</title>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+<style>
+* { margin:0; padding:0; box-sizing:border-box; }
+body {
+    font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+    background: linear-gradient(135deg, #1a1a2e 0%, #16213e 50%, #0f3460 100%);
+    min-height: 100vh;
+    padding: 20px;
+}
+.container {
+    max-width: 1300px;
+    margin: 0 auto;
+    background: white;
+    border-radius: 16px;
+    overflow: hidden;
+    box-shadow: 0 25px 70px rgba(0,0,0,0.4);
+}
+
+/* HEADER */
+.header {
+    background: linear-gradient(135deg, #0f3460 0%, #16213e 50%, #1a1a2e 100%);
+    color: white;
+    padding: 36px 30px;
+    position: relative;
+    overflow: hidden;
+}
+.header::after {
+    content: '';
+    position: absolute;
+    bottom: 0; left: 0; right: 0;
+    height: 4px;
+    background: linear-gradient(90deg, #e94560, #f5a623, #00b4d8, #e94560);
+    background-size: 300%;
+    animation: shimmer 3s linear infinite;
+}
+@keyframes shimmer { 0%{background-position:0%} 100%{background-position:300%} }
+.header-top { display: flex; align-items: center; gap: 18px; margin-bottom: 6px; }
+.header-icon {
+    width: 52px; height: 52px;
+    background: linear-gradient(135deg, #e94560, #f5a623);
+    border-radius: 12px;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 26px;
+}
+.header h1 { font-size: 26px; font-weight: 700; letter-spacing: -0.3px; }
+.header .sub { font-size: 13px; opacity: 0.7; margin-top: 3px; }
+.header .company { font-size: 12px; opacity: 0.55; margin-top: 10px; }
+
+/* TABS */
+.tabs {
+    display: flex;
+    background: #f5f7fa;
+    border-bottom: 2px solid #e0e0e0;
+}
+.tab {
+    padding: 15px 24px;
+    font-weight: 600;
+    font-size: 13px;
+    color: #888;
+    cursor: pointer;
+    border: none;
+    background: none;
+    border-bottom: 3px solid transparent;
+    margin-bottom: -2px;
+    transition: all 0.2s;
+}
+.tab:hover { color: #0f3460; background: #eef2f7; }
+.tab.active { color: #0f3460; border-bottom-color: #e94560; background: white; }
+
+.tab-pane { display: none; padding: 28px; }
+.tab-pane.active { display: block; }
+
+/* CARDS */
+.card {
+    background: #f8f9fb;
+    border-radius: 12px;
+    padding: 26px;
+    margin-bottom: 22px;
+    border: 1px solid #e8ecf1;
+}
+.card h2 {
+    font-size: 17px; font-weight: 700;
+    color: #0f3460;
+    margin-bottom: 20px;
+    padding-bottom: 10px;
+    border-bottom: 2px solid #e94560;
+}
+
+/* GRID FORM */
+.fgrid { display: grid; grid-template-columns: repeat(auto-fit, minmax(210px, 1fr)); gap: 14px; margin-bottom: 14px; }
+.fgroup { display: flex; flex-direction: column; gap: 5px; }
+label { font-size: 12px; font-weight: 700; color: #444; text-transform: uppercase; letter-spacing: 0.4px; }
+input, select, textarea {
+    padding: 10px 12px;
+    border: 2px solid #e0e4eb;
+    border-radius: 8px;
+    font-size: 14px;
+    background: white;
+    transition: border-color 0.2s, box-shadow 0.2s;
+    color: #222;
+}
+input:focus, select:focus, textarea:focus {
+    outline: none;
+    border-color: #0f3460;
+    box-shadow: 0 0 0 3px rgba(15,52,96,0.08);
+}
+
+/* TYPE PIÈCE SELECTOR */
+.type-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
+    gap: 12px;
+    margin-bottom: 18px;
+}
+.type-card {
+    border: 2px solid #e0e4eb;
+    border-radius: 10px;
+    padding: 16px 12px;
+    text-align: center;
+    cursor: pointer;
+    background: white;
+    transition: all 0.2s;
+    font-weight: 600;
+    color: #555;
+}
+.type-card:hover { border-color: #0f3460; transform: translateY(-2px); box-shadow: 0 6px 18px rgba(0,0,0,0.1); }
+.type-card.selected { border-color: #e94560; background: linear-gradient(135deg,#fff0f3,#ffe4ea); color: #c0143a; box-shadow: 0 4px 14px rgba(233,69,96,0.2); }
+.type-icon { font-size: 30px; display: block; margin-bottom: 6px; }
+.type-name { font-size: 13px; font-weight: 700; display: block; }
+
+/* DIRECTION SELECTOR */
+.direction-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin-bottom: 18px; }
+.dir-card {
+    border: 2px solid #e0e4eb;
+    border-radius: 10px;
+    padding: 18px;
+    text-align: center;
+    cursor: pointer;
+    background: white;
+    transition: all 0.2s;
+    font-weight: 700;
+    font-size: 15px;
+    color: #555;
+}
+.dir-card:hover { transform: translateY(-2px); box-shadow: 0 6px 18px rgba(0,0,0,0.1); }
+.dir-card.depart  { border-color: #f5a623; }
+.dir-card.depart.selected  { background: linear-gradient(135deg,#fff8e6,#ffefc0); border-color: #f5a623; color: #b37a00; box-shadow: 0 4px 14px rgba(245,166,35,0.25); }
+.dir-card.retour  { border-color: #00b4d8; }
+.dir-card.retour.selected  { background: linear-gradient(135deg,#e6f9fc,#b8eef8); border-color: #00b4d8; color: #006f87; box-shadow: 0 4px 14px rgba(0,180,216,0.25); }
+.dir-icon { font-size: 28px; display: block; margin-bottom: 6px; }
+
+/* CHRONO */
+.chrono-zone {
+    background: white;
+    border: 2px solid #e0e4eb;
+    border-radius: 12px;
+    padding: 18px;
+    margin-bottom: 14px;
+}
+.chrono-label { font-size: 12px; font-weight: 700; color: #888; text-transform: uppercase; letter-spacing: 0.4px; margin-bottom: 12px; }
+.chrono-row { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }
+.chrono-display {
+    font-family: 'Courier New', monospace;
+    font-size: 32px; font-weight: 700;
+    color: #0f3460; min-width: 110px;
+    transition: color 0.3s;
+}
+.chrono-display.running { color: #e94560; }
+@keyframes blink { 0%,100%{opacity:1} 50%{opacity:0.4} }
+.running { animation: blink 1s ease-in-out infinite; }
+.btn-c {
+    padding: 9px 18px; border: none; border-radius: 20px;
+    font-size: 13px; font-weight: 700; cursor: pointer; transition: all 0.2s;
+}
+.btn-c.start  { background: #0f3460; color: white; }
+.btn-c.start:hover { background: #16213e; transform: translateY(-1px); }
+.btn-c.stop   { background: #e94560; color: white; }
+.btn-c.stop:hover { background: #c0143a; transform: translateY(-1px); }
+.btn-c.pause  { background: #f5a623; color: white; }
+.btn-c.pause:hover { background: #d48a00; }
+.btn-c.reset  { background: #eee; color: #666; }
+.btn-c.reset:hover { background: #ddd; }
+.manual-input {
+    display: flex; align-items: center; gap: 8px; margin-top: 10px;
+}
+.manual-input input { width: 90px; text-align: center; font-size: 15px; font-weight: 700; padding: 7px; }
+.manual-input span { font-size: 12px; color: #888; }
+
+/* BOUTONS */
+.btn {
+    padding: 11px 24px; border: none; border-radius: 8px;
+    font-size: 14px; font-weight: 700; cursor: pointer; transition: all 0.2s;
+}
+.btn-main   { background: linear-gradient(135deg, #0f3460, #16213e); color: white; }
+.btn-main:hover   { transform: translateY(-2px); box-shadow: 0 8px 20px rgba(15,52,96,0.3); }
+.btn-export { background: linear-gradient(135deg, #16a085, #1abc9c); color: white; }
+.btn-export:hover { transform: translateY(-2px); box-shadow: 0 8px 20px rgba(26,188,156,0.3); }
+.btn-danger { background: #e74c3c; color: white; }
+.btn-sm { padding: 6px 14px; font-size: 12px; }
+
+/* TABLE */
+.tbl-wrap { overflow-x: auto; border-radius: 10px; box-shadow: 0 2px 12px rgba(0,0,0,0.07); margin-top: 16px; }
+table { width: 100%; border-collapse: collapse; background: white; font-size: 13px; }
+th {
+    background: linear-gradient(135deg, #0f3460, #16213e);
+    color: white; padding: 12px 10px;
+    text-align: left; font-size: 11px;
+    text-transform: uppercase; letter-spacing: 0.4px;
+    white-space: nowrap;
+}
+td { padding: 11px 10px; border-bottom: 1px solid #f0f0f0; color: #333; white-space: nowrap; }
+tr:hover td { background: #f8f0f2; }
+.badge {
+    display: inline-block; padding: 3px 10px;
+    border-radius: 20px; font-size: 11px; font-weight: 700;
+}
+.badge-depart  { background: #fff0c0; color: #b37a00; border: 1px solid #f5a623; }
+.badge-retour  { background: #d0f4fb; color: #006f87; border: 1px solid #00b4d8; }
+.badge-corniere { background: #f0e6ff; color: #5500aa; }
+.badge-panier   { background: #e6f0ff; color: #003eaa; }
+.badge-grainage { background: #e6fff0; color: #007a2e; }
+.badge-petite   { background: #fff6e6; color: #aa5500; }
+
+/* STATS */
+.stats-row { display: grid; grid-template-columns: repeat(auto-fit, minmax(160px, 1fr)); gap: 14px; margin-bottom: 22px; }
+.stat-box {
+    background: linear-gradient(135deg, #0f3460, #16213e);
+    color: white; border-radius: 12px; padding: 18px;
+    position: relative; overflow: hidden;
+}
+.stat-box::after {
+    content:''; position: absolute; bottom:-20px; right:-20px;
+    width: 80px; height: 80px;
+    background: rgba(255,255,255,0.05); border-radius: 50%;
+}
+.stat-box.red    { background: linear-gradient(135deg, #c0143a, #e94560); }
+.stat-box.amber  { background: linear-gradient(135deg, #b37a00, #f5a623); }
+.stat-box.teal   { background: linear-gradient(135deg, #006f87, #00b4d8); }
+.stat-box.green  { background: linear-gradient(135deg, #006625, #27ae60); }
+.stat-box h4 { font-size: 11px; opacity: 0.8; text-transform: uppercase; letter-spacing: 0.4px; margin-bottom: 6px; }
+.stat-box .val { font-size: 28px; font-weight: 700; }
+
+/* LOT INFO */
+.lot-banner {
+    background: linear-gradient(135deg, #0f3460, #16213e);
+    color: white; padding: 16px 20px; border-radius: 10px; margin-bottom: 18px;
+}
+.lot-banner h3 { font-size: 16px; margin-bottom: 5px; }
+.lot-banner p { font-size: 13px; opacity: 0.85; }
+
+/* PROGRESS */
+.prog-bar { background: #e0e4eb; height: 24px; border-radius: 12px; overflow: hidden; margin: 14px 0; }
+.prog-fill {
+    background: linear-gradient(135deg, #e94560, #f5a623);
+    height: 100%; transition: width 0.4s;
+    display: flex; align-items: center; justify-content: center;
+    color: white; font-weight: 700; font-size: 12px;
+}
+.piece-ctr {
+    text-align: center; background: #e94560; color: white;
+    border-radius: 8px; padding: 12px; font-size: 20px; font-weight: 700; margin-bottom: 16px;
+}
+
+/* LIVE TABLE */
+.live-table-wrap {
+    margin-top: 20px;
+    border: 2px solid #0f3460;
+    border-radius: 12px;
+    overflow: hidden;
+    display: none;
+}
+.live-table-header {
+    background: linear-gradient(135deg, #0f3460, #16213e);
+    color: white; padding: 12px 18px;
+    font-weight: 700; font-size: 13px;
+}
+.live-table-wrap table { font-size: 12px; }
+.live-table-wrap th { font-size: 10px; padding: 9px 8px; background: #1a2a4a; }
+.live-table-wrap td { padding: 9px 8px; }
+.cur-piece td { background: #fff8e6; color: #b37a00; font-style: italic; }
+.avg-row td { background: linear-gradient(135deg, #0f3460, #16213e); color: white; font-weight: 700; }
+
+/* FILTER ROW */
+.filter-row { display: flex; gap: 10px; flex-wrap: wrap; margin-bottom: 16px; align-items: center; }
+.filter-row select { padding: 8px 12px; font-size: 13px; }
+
+/* HIDDEN */
+.hidden { display: none; }
+</style>
+</head>
+<body>
+<div class="container">
+
+<!-- HEADER -->
+<div class="header">
+    <div class="header-top">
+        <div class="header-icon">🚚</div>
+        <div>
+            <h1>Contrôle Départ / Retour Sous-Traitance</h1>
+            <div class="sub">Suivi des temps de dossier et de contrôle des pièces</div>
+        </div>
+    </div>
+    <div class="company">Projet mené par Nicolas Risco — EXALTA Group</div>
+</div>
+
+<!-- TABS -->
+<div class="tabs">
+    <button class="tab active" onclick="goTab('saisie')">📝 Nouvelle saisie</button>
+    <button class="tab" onclick="goTab('historique')">📋 Toutes les données</button>
+    <button class="tab" onclick="goTab('stats')">📊 Statistiques</button>
+</div>
+
+<!-- ══════════════════════════════════════════════ -->
+<!-- TAB SAISIE                                     -->
+<!-- ══════════════════════════════════════════════ -->
+<div id="tab-saisie" class="tab-pane active">
+
+    <!-- SECTION LOT -->
+    <div class="card" id="lotSection">
+        <h2>📦 Déclaration du lot</h2>
+        <form id="lotForm">
+            <div class="fgrid">
+                <div class="fgroup">
+                    <label>Date *</label>
+                    <input type="date" id="lotDate" required>
+                </div>
+                <div class="fgroup">
+                    <label>Opérateur *</label>
+                    <select id="lotOperateur" required>
+                        <option value="">-- Sélectionner --</option>
+                        <option>Stéphanie</option>
+                        <option>Lillian</option>
+                        <option>Stéphania</option>
+                        <option>Elisabeth</option>
+                        <option>Matthieu</option>
+                        <option>Nicolas</option>
+                        <option>Leila</option>
+                    </select>
+                </div>
+                <div class="fgroup">
+                    <label>N° Affaire *</label>
+                    <input type="text" id="lotAffaire" placeholder="Ex: A00" required>
+                </div>
+                <div class="fgroup">
+                    <label>N° OF *</label>
+                    <input type="text" id="lotOF" placeholder="Ex: OF00" required>
+                </div>
+                <div class="fgroup">
+                    <label>Référence *</label>
+                    <input type="text" id="lotRef" placeholder="Ex: SP" required>
+                </div>
+                <div class="fgroup">
+                    <label>Taille du lot *</label>
+                    <input type="number" id="lotQt" placeholder="Ex: 100" min="1" required>
+                </div>
+                <div class="fgroup">
+                    <label>Taille échantillon *</label>
+                    <input type="number" id="lotEch" placeholder="Ex: 10" min="1" required>
+                </div>
+            </div>
+
+            <!-- DIRECTION -->
+            <label style="display:block; margin-bottom:10px;">Direction du contrôle *</label>
+            <div class="direction-grid">
+                <div class="dir-card depart" id="dirDepart" onclick="selectDir('depart')">
+                    <span class="dir-icon">📤</span>Départ
+                </div>
+                <div class="dir-card retour" id="dirRetour" onclick="selectDir('retour')">
+                    <span class="dir-icon">📥</span>Retour
+                </div>
+            </div>
+            <input type="hidden" id="lotDirection">
+
+            <!-- TYPE PIÈCE -->
+            <label style="display:block; margin-bottom:10px;">Type de pièce *</label>
+            <div class="type-grid">
+                <div class="type-card" id="type-corniere" onclick="selectType('corniere')">
+                    <span class="type-icon">📐</span>
+                    <span class="type-name">Cornières</span>
+                </div>
+                <div class="type-card" id="type-panier" onclick="selectType('panier')">
+                    <span class="type-icon">🧺</span>
+                    <span class="type-name">Paniers</span>
+                </div>
+                <div class="type-card" id="type-grainage" onclick="selectType('grainage')">
+                    <span class="type-icon">🔩</span>
+                    <span class="type-name">Pièces grainage</span>
+                </div>
+                <div class="type-card" id="type-petite" onclick="selectType('petite')">
+                    <span class="type-icon">🔹</span>
+                    <span class="type-name">Petites pièces</span>
+                </div>
+            </div>
+            <input type="hidden" id="lotType">
+
+            <div id="lotFormErrors" style="color:#e94560; font-size:13px; margin-bottom:12px; display:none;"></div>
+
+            <button type="submit" class="btn btn-main">▶ Commencer la saisie des temps</button>
+        </form>
+    </div>
+
+    <!-- SECTION SAISIE TEMPS -->
+    <div class="card hidden" id="saisieSection">
+        <div class="lot-banner" id="lotBanner"></div>
+        <div class="prog-bar"><div class="prog-fill" id="progFill" style="width:0%">0%</div></div>
+        <div class="piece-ctr" id="pieceCtr"></div>
+
+        <form id="pieceForm">
+            <!-- TEMPS DOSSIER (1 seule fois) -->
+            <div class="chrono-zone" id="dossierZone">
+                <div class="chrono-label">📁 Temps de préparation du dossier de fab <span style="font-weight:400; color:#bbb;">(une fois par lot)</span></div>
+                <div class="chrono-row">
+                    <span class="chrono-display" id="cd_dossier">00:00</span>
+                    <button type="button" class="btn-c start" id="cs_dossier" onclick="startC('dossier')">▶ Démarrer</button>
+                    <button type="button" class="btn-c pause" id="cp_dossier" onclick="pauseC('dossier')" style="display:none">⏸ Pause</button>
+                    <button type="button" class="btn-c stop"  id="ck_dossier" onclick="stopC('dossier')"  style="display:none">⏹ Arrêter</button>
+                    <button type="button" class="btn-c reset" onclick="resetC('dossier')">↺</button>
+                </div>
+                <div class="manual-input">
+                    <input type="number" id="ci_dossier" step="0.01" min="0" placeholder="0.00" oninput="manualC('dossier')">
+                    <span>min (saisie manuelle)</span>
+                </div>
+            </div>
+
+            <!-- TEMPS CTRL PIÈCE -->
+            <div class="chrono-zone">
+                <div class="chrono-label">🔍 Temps de contrôle de la pièce</div>
+                <div class="chrono-row">
+                    <span class="chrono-display" id="cd_ctrl">00:00</span>
+                    <button type="button" class="btn-c start" id="cs_ctrl" onclick="startC('ctrl')">▶ Démarrer</button>
+                    <button type="button" class="btn-c pause" id="cp_ctrl" onclick="pauseC('ctrl')" style="display:none">⏸ Pause</button>
+                    <button type="button" class="btn-c stop"  id="ck_ctrl" onclick="stopC('ctrl')"  style="display:none">⏹ Arrêter</button>
+                    <button type="button" class="btn-c reset" onclick="resetC('ctrl')">↺</button>
+                </div>
+                <div class="manual-input">
+                    <input type="number" id="ci_ctrl" step="0.01" min="0" placeholder="0.00" oninput="manualC('ctrl')">
+                    <span>min (saisie manuelle)</span>
+                </div>
+            </div>
+
+            <div class="fgroup" style="margin-bottom:16px;">
+                <label>Observations (optionnel)</label>
+                <textarea id="pieceObs" rows="2" placeholder="Défaut constaté, remarque..."></textarea>
+            </div>
+
+            <div style="display:flex; gap:10px; flex-wrap:wrap;">
+                <button type="submit" class="btn btn-main">➡️ Pièce suivante</button>
+                <button type="button" class="btn btn-danger" onclick="cancelLot()">❌ Annuler</button>
+            </div>
+        </form>
+
+        <!-- TABLEAU EN DIRECT -->
+        <div class="live-table-wrap" id="liveTable">
+            <div class="live-table-header">📋 Pièces mesurées — en cours</div>
+            <div style="overflow-x:auto;">
+                <table>
+                    <thead>
+                        <tr>
+                            <th>Pièce</th>
+                            <th>📁 Dossier (min)</th>
+                            <th>🔍 Ctrl pièce (min)</th>
+                            <th>Total (min)</th>
+                            <th>Obs.</th>
+                        </tr>
+                    </thead>
+                    <tbody id="liveTbody"></tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- ══════════════════════════════════════════════ -->
+<!-- TAB HISTORIQUE                                 -->
+<!-- ══════════════════════════════════════════════ -->
+<div id="tab-historique" class="tab-pane">
+    <div class="card">
+        <h2>📋 Toutes les données</h2>
+        <div class="filter-row">
+            <button class="btn btn-export" onclick="exportExcel()">📥 Exporter vers Excel</button>
+            <button class="btn btn-danger btn-sm" onclick="clearAll()">🗑️ Effacer tout</button>
+            <select id="filterDir" onchange="renderTable()">
+                <option value="">Toutes directions</option>
+                <option value="depart">Départ</option>
+                <option value="retour">Retour</option>
+            </select>
+            <select id="filterType" onchange="renderTable()">
+                <option value="">Tous types</option>
+                <option value="corniere">Cornières</option>
+                <option value="panier">Paniers</option>
+                <option value="grainage">Grainage</option>
+                <option value="petite">Petites pièces</option>
+            </select>
+            <select id="filterOp" onchange="renderTable()">
+                <option value="">Tous opérateurs</option>
+                <option>Stéphanie</option>
+                <option>Lillian</option>
+                <option>Stéphania</option>
+                <option>Elisabeth</option>
+                <option>Matthieu</option>
+                <option>Nicolas</option>
+                <option>Leila</option>
+            </select>
+        </div>
+        <div class="tbl-wrap">
+            <table>
+                <thead>
+                    <tr>
+                        <th>Date</th>
+                        <th>Opérateur</th>
+                        <th>Affaire</th>
+                        <th>OF</th>
+                        <th>Réf.</th>
+                        <th>Direction</th>
+                        <th>Type pièce</th>
+                        <th>Pièce N°</th>
+                        <th>Taille lot</th>
+                        <th>Échantillon</th>
+                        <th>Dossier (min)</th>
+                        <th>Ctrl pièce (min)</th>
+                        <th>Total (min)</th>
+                        <th>Obs.</th>
+                        <th></th>
+                    </tr>
+                </thead>
+                <tbody id="mainTbody"></tbody>
+            </table>
+        </div>
+    </div>
+</div>
+
+<!-- ══════════════════════════════════════════════ -->
+<!-- TAB STATS                                      -->
+<!-- ══════════════════════════════════════════════ -->
+<div id="tab-stats" class="tab-pane">
+    <div id="statsContainer">
+        <p style="text-align:center; color:#999; padding:60px; font-size:15px;">Aucune donnée pour le moment.</p>
+    </div>
+</div>
+
+</div><!-- /container -->
+<script>
+// ═══════════════════════════════════════════════
+// ÉTAT
+// ═══════════════════════════════════════════════
+let data = [];
+let currentLot = null;
+let currentPiece = 0;
+let piecesData = [];
+let dossierSaved = false;
+let selectedDir  = '';
+let selectedType = '';
+
+const TYPE_LABELS = { corniere:'Cornières', panier:'Paniers', grainage:'Pièces grainage', petite:'Petites pièces' };
+const TYPE_BADGES = {
+    corniere:'badge-corniere', panier:'badge-panier',
+    grainage:'badge-grainage', petite:'badge-petite'
+};
+
+// ═══════════════════════════════════════════════
+// INIT
+// ═══════════════════════════════════════════════
+function init() {
+    try { data = JSON.parse(localStorage.getItem('exalta_st_data') || '[]'); } catch(e){ data=[]; }
+    const t = new Date();
+    document.getElementById('lotDate').value =
+        `${t.getFullYear()}-${String(t.getMonth()+1).padStart(2,'0')}-${String(t.getDate()).padStart(2,'0')}`;
+    renderTable();
+    renderStats();
+}
+if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', init);
+else init();
+
+// ═══════════════════════════════════════════════
+// TABS
+// ═══════════════════════════════════════════════
+function goTab(id) {
+    document.querySelectorAll('.tab-pane').forEach(p => p.classList.remove('active'));
+    document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+    document.getElementById('tab-'+id).classList.add('active');
+    const idx = ['saisie','historique','stats'].indexOf(id);
+    document.querySelectorAll('.tab')[idx].classList.add('active');
+    if (id === 'stats') renderStats();
+    if (id === 'historique') renderTable();
+}
+
+// ═══════════════════════════════════════════════
+// SELECTORS
+// ═══════════════════════════════════════════════
+function selectDir(d) {
+    selectedDir = d;
+    document.getElementById('lotDirection').value = d;
+    document.getElementById('dirDepart').className = 'dir-card depart' + (d==='depart' ? ' selected' : '');
+    document.getElementById('dirRetour').className = 'dir-card retour' + (d==='retour' ? ' selected' : '');
+}
+function selectType(t) {
+    selectedType = t;
+    document.getElementById('lotType').value = t;
+    ['corniere','panier','grainage','petite'].forEach(k => {
+        document.getElementById('type-'+k).className = 'type-card' + (k===t ? ' selected' : '');
+    });
+}
+
+// ═══════════════════════════════════════════════
+// CHRONO GÉNÉRIQUE
+// ═══════════════════════════════════════════════
+const CS = {}; // chrono states
+function initC(id) { CS[id] = { iv:null, s:0, running:false }; }
+
+function fmtTime(s) {
+    const m = Math.floor(s/60), ss = s%60;
+    return `${String(m).padStart(2,'0')}:${String(ss).padStart(2,'0')}`;
+}
+
+function startC(id) {
+    const c = CS[id]; if (!c || c.running) return;
+    c.running = true;
+    g('cs_'+id).style.display = 'none';
+    g('cp_'+id).style.display = 'inline-block';
+    g('ck_'+id).style.display = 'inline-block';
+    g('cd_'+id).classList.add('running');
+    c.iv = setInterval(() => { c.s++; g('cd_'+id).textContent = fmtTime(c.s); }, 1000);
+}
+function pauseC(id) {
+    const c = CS[id]; if (!c) return;
+    if (c.running) {
+        clearInterval(c.iv); c.running = false;
+        g('cp_'+id).textContent = '▶ Rep.';
+        g('cd_'+id).classList.remove('running');
+    } else {
+        c.running = true;
+        g('cp_'+id).textContent = '⏸ Pause';
+        g('cd_'+id).classList.add('running');
+        c.iv = setInterval(() => { c.s++; g('cd_'+id).textContent = fmtTime(c.s); }, 1000);
+    }
+}
+function stopC(id) {
+    const c = CS[id]; if (!c) return;
+    clearInterval(c.iv); c.running = false;
+    g('cs_'+id).style.display = 'inline-block';
+    g('cp_'+id).style.display = 'none';
+    g('ck_'+id).style.display = 'none';
+    g('cp_'+id).textContent = '⏸ Pause';
+    g('cd_'+id).classList.remove('running');
+    const mins = (c.s/60).toFixed(2);
+    g('ci_'+id).value = mins;
+    g('cd_'+id).textContent = fmtTime(c.s);
+}
+function resetC(id) {
+    const c = CS[id]; if (!c) return;
+    clearInterval(c.iv); c.running = false; c.s = 0;
+    g('ci_'+id).value = '';
+    g('cd_'+id).textContent = '00:00';
+    g('cd_'+id).classList.remove('running');
+    g('cs_'+id).style.display = 'inline-block';
+    g('cp_'+id).style.display = 'none';
+    g('cp_'+id).textContent = '⏸ Pause';
+    g('ck_'+id).style.display = 'none';
+}
+function manualC(id) {
+    const c = CS[id]; if (!c) return;
+    if (c.running) { clearInterval(c.iv); c.running = false; g('cd_'+id).classList.remove('running'); }
+}
+function getC(id) { return parseFloat(g('ci_'+id)?.value) || 0; }
+function g(id) { return document.getElementById(id); }
+
+// ═══════════════════════════════════════════════
+// FORMULAIRE LOT
+// ═══════════════════════════════════════════════
+document.getElementById('lotForm').addEventListener('submit', function(e) {
+    e.preventDefault();
+    const err = [];
+    if (!selectedDir)  err.push('Sélectionnez une direction (Départ / Retour)');
+    if (!selectedType) err.push('Sélectionnez un type de pièce');
+    if (err.length) {
+        const el = g('lotFormErrors');
+        el.textContent = '⚠️ ' + err.join(' — ');
+        el.style.display = 'block';
+        return;
+    }
+    g('lotFormErrors').style.display = 'none';
+
+    currentLot = {
+        date:      g('lotDate').value,
+        operateur: g('lotOperateur').value,
+        affaire:   g('lotAffaire').value.trim(),
+        of:        g('lotOF').value.trim(),
+        ref:       g('lotRef').value.trim(),
+        qt:        parseInt(g('lotQt').value),
+        ech:       parseInt(g('lotEch').value),
+        direction: selectedDir,
+        type:      selectedType,
+    };
+    currentPiece = 1;
+    piecesData   = [];
+    dossierSaved = false;
+
+    initC('dossier'); initC('ctrl');
+
+    const dirLabel = selectedDir === 'depart' ? '📤 Départ' : '📥 Retour';
+    g('lotBanner').innerHTML = `
+        <h3>📦 ${currentLot.ref} — ${TYPE_LABELS[currentLot.type]} — ${dirLabel}</h3>
+        <p>${currentLot.operateur} | ${new Date(currentLot.date).toLocaleDateString('fr-FR')} | Affaire ${currentLot.affaire} | OF ${currentLot.of} | Lot : <strong>${currentLot.qt} pièces</strong> | Échantillon : <strong>${currentLot.ech} pièces</strong></p>
+    `;
+    updatePieceUI();
+    g('lotSection').classList.add('hidden');
+    g('saisieSection').classList.remove('hidden');
+    g('liveTable').style.display = 'none';
+    g('liveTbody').innerHTML = '';
+});
+
+// ═══════════════════════════════════════════════
+// FORMULAIRE PIÈCE
+// ═══════════════════════════════════════════════
+document.getElementById('pieceForm').addEventListener('submit', function(e) {
+    e.preventDefault();
+    if (CS['ctrl']?.running) stopC('ctrl');
+    if (CS['dossier']?.running) stopC('dossier');
+
+    const tDossier = getC('dossier');
+    const tCtrl    = getC('ctrl');
+
+    if (tCtrl <= 0) {
+        alert('⚠️ Veuillez renseigner le temps de contrôle de la pièce.');
+        return;
+    }
+
+    // Le temps dossier n'est saisi qu'une fois (1ère pièce), ensuite 0
+    const tDossierFinal = dossierSaved ? 0 : tDossier;
+    if (!dossierSaved && tDossier > 0) dossierSaved = true;
+
+    const entry = {
+        date:       currentLot.date,
+        operateur:  currentLot.operateur,
+        affaire:    currentLot.affaire,
+        of:         currentLot.of,
+        ref:        currentLot.ref,
+        qt:         currentLot.qt,
+        ech:        currentLot.ech,
+        direction:  currentLot.direction,
+        type:       currentLot.type,
+        pieceNumber: currentPiece,
+        tDossier:   tDossierFinal,
+        tCtrl:      tCtrl,
+        total:      tDossierFinal + tCtrl,
+        obs:        g('pieceObs').value.trim()
+    };
+    data.push(entry);
+    piecesData.push(entry);
+    save();
+    renderLiveTable();
+
+    if (currentPiece < currentLot.ech) {
+        currentPiece++;
+        updatePieceUI();
+        // Reset chrono ctrl seulement, pas dossier
+        resetC('ctrl');
+        g('pieceObs').value = '';
+        // Griser le champ dossier après la 1ère pièce
+        if (dossierSaved) {
+            g('dossierZone').style.opacity = '0.4';
+            g('dossierZone').style.pointerEvents = 'none';
+        }
+    } else {
+        // Lot terminé
+        alert(`✅ Lot terminé ! ${currentLot.qt} pièces enregistrées.`);
+        resetAll();
+    }
+});
+
+function updatePieceUI() {
+    const pct = Math.round(((currentPiece-1)/currentLot.ech)*100);
+    g('progFill').style.width = pct+'%'; g('progFill').textContent = pct+'%';
+    g('pieceCtr').textContent = `Pièce ${currentPiece} / ${currentLot.ech}`;
+}
+
+function renderLiveTable() {
+    g('liveTable').style.display = 'block';
+    let rows = '';
+    piecesData.forEach((p) => {
+        rows += `<tr>
+            <td><strong>#${p.pieceNumber}</strong></td>
+            <td>${p.tDossier > 0 ? p.tDossier.toFixed(2)+' min' : '<span style="color:#ccc">—</span>'}</td>
+            <td>${p.tCtrl.toFixed(2)} min</td>
+            <td><strong>${p.total.toFixed(2)} min</strong></td>
+            <td>${p.obs||'—'}</td>
+        </tr>`;
+    });
+    if (piecesData.length < currentLot.ech) {
+        rows += `<tr class="cur-piece">
+            <td><strong>#${piecesData.length+1}</strong></td>
+            <td colspan="4" style="text-align:center;">en cours…</td>
+        </tr>`;
+    }
+    g('liveTbody').innerHTML = rows;
+}
+
+// ═══════════════════════════════════════════════
+// RESET
+// ═══════════════════════════════════════════════
+function resetAll() {
+    currentLot = null; currentPiece = 0; piecesData = []; dossierSaved = false;
+    selectedDir = ''; selectedType = '';
+    g('lotForm').reset();
+    const t = new Date();
+    g('lotDate').value = `${t.getFullYear()}-${String(t.getMonth()+1).padStart(2,'0')}-${String(t.getDate()).padStart(2,'0')}`;
+    g('dirDepart').className = 'dir-card depart';
+    g('dirRetour').className = 'dir-card retour';
+    ['corniere','panier','grainage','petite'].forEach(k => {
+        g('type-'+k).className = 'type-card';
+    });
+    g('dossierZone').style.opacity = '1';
+    g('dossierZone').style.pointerEvents = '';
+    g('liveTable').style.display = 'none';
+    g('liveTbody').innerHTML = '';
+    g('lotSection').classList.remove('hidden');
+    g('saisieSection').classList.add('hidden');
+    renderTable(); renderStats();
+}
+function cancelLot() {
+    if (confirm('Annuler ? Les pièces déjà saisies sont conservées.')) resetAll();
+}
+
+// ═══════════════════════════════════════════════
+// SAVE / LOAD
+// ═══════════════════════════════════════════════
+function save() {
+    try { localStorage.setItem('exalta_st_data', JSON.stringify(data)); } catch(e){}
+}
+function clearAll() {
+    if (!confirm('Effacer TOUTES les données ?')) return;
+    if (!confirm(`Confirmer : ${data.length} lignes supprimées ?`)) return;
+    data = []; localStorage.removeItem('exalta_st_data');
+    renderTable(); renderStats();
+}
+
+// ═══════════════════════════════════════════════
+// TABLE HISTORIQUE
+// ═══════════════════════════════════════════════
+function renderTable() {
+    const fDir  = g('filterDir')?.value  || '';
+    const fType = g('filterType')?.value || '';
+    const fOp   = g('filterOp')?.value   || '';
+    const filtered = data.filter(r =>
+        (!fDir  || r.direction === fDir) &&
+        (!fType || r.type === fType) &&
+        (!fOp   || r.operateur === fOp)
+    );
+    const tbody = g('mainTbody');
+    if (!tbody) return;
+    tbody.innerHTML = '';
+    filtered.forEach((r, i) => {
+        const dirBadge = r.direction === 'depart'
+            ? '<span class="badge badge-depart">📤 Départ</span>'
+            : '<span class="badge badge-retour">📥 Retour</span>';
+        const typeBadge = `<span class="badge ${TYPE_BADGES[r.type]}">${TYPE_LABELS[r.type]}</span>`;
+        const tr = document.createElement('tr');
+        tr.innerHTML = `
+            <td>${new Date(r.date).toLocaleDateString('fr-FR')}</td>
+            <td>${r.operateur}</td>
+            <td>${r.affaire||'-'}</td>
+            <td>${r.of||'-'}</td>
+            <td><strong>${r.ref}</strong></td>
+            <td>${dirBadge}</td>
+            <td>${typeBadge}</td>
+            <td>#${r.pieceNumber}</td>
+            <td>${r.qt}</td>
+            <td>${r.ech||'-'}</td>
+            <td>${r.tDossier > 0 ? r.tDossier.toFixed(2) : '—'}</td>
+            <td>${r.tCtrl.toFixed(2)}</td>
+            <td><strong>${r.total.toFixed(2)}</strong></td>
+            <td>${r.obs||'—'}</td>
+            <td><button class="btn btn-danger btn-sm" onclick="deleteRow(${data.indexOf(r)})">🗑️</button></td>`;
+        tbody.appendChild(tr);
+    });
+}
+function deleteRow(i) {
+    if (!confirm('Supprimer cette ligne ?')) return;
+    data.splice(i,1); save(); renderTable(); renderStats();
+}
+
+// ═══════════════════════════════════════════════
+// STATS
+// ═══════════════════════════════════════════════
+function renderStats() {
+    const c = g('statsContainer');
+    if (!data.length) {
+        c.innerHTML = '<p style="text-align:center;color:#999;padding:60px;font-size:15px;">Aucune donnée pour le moment.</p>';
+        return;
+    }
+    const types = ['corniere','panier','grainage','petite'];
+    const dirs  = ['depart','retour'];
+    let html = '';
+
+    // Globaux
+    const avgCtrl = data.reduce((s,r)=>s+r.tCtrl,0)/data.length;
+    const minCtrl = Math.min(...data.map(r=>r.tCtrl));
+    const maxCtrl = Math.max(...data.map(r=>r.tCtrl));
+    const lots    = new Set(data.map(r=>r.ref+'|'+r.of)).size;
+    html += `<div class="card"><h2>📊 Vue globale</h2>
+        <div class="stats-row">
+            <div class="stat-box"><h4>Pièces contrôlées</h4><div class="val">${data.length}</div></div>
+            <div class="stat-box amber"><h4>Lots</h4><div class="val">${lots}</div></div>
+            <div class="stat-box teal"><h4>Tps ctrl moyen</h4><div class="val">${avgCtrl.toFixed(2)} min</div></div>
+            <div class="stat-box red"><h4>Tps ctrl max</h4><div class="val">${maxCtrl.toFixed(2)} min</div></div>
+            <div class="stat-box green"><h4>Tps ctrl min</h4><div class="val">${minCtrl.toFixed(2)} min</div></div>
+        </div>
+    </div>`;
+
+    // Par type de pièce
+    html += `<div class="card"><h2>🔹 Par type de pièce</h2>`;
+    types.forEach(type => {
+        const rows = data.filter(r=>r.type===type);
+        if (!rows.length) return;
+        const avg = rows.reduce((s,r)=>s+r.tCtrl,0)/rows.length;
+        const tot = rows.reduce((s,r)=>s+r.tCtrl,0);
+        html += `<div style="margin-bottom:18px;">
+            <div style="font-weight:700;color:#0f3460;margin-bottom:10px;font-size:15px;">${TYPE_LABELS[type]} — ${rows.length} pièces</div>
+            <div class="stats-row">
+                <div class="stat-box"><h4>Pièces</h4><div class="val">${rows.length}</div></div>
+                <div class="stat-box teal"><h4>Tps moyen ctrl</h4><div class="val">${avg.toFixed(2)} min</div></div>
+                <div class="stat-box amber"><h4>Total ctrl cumulé</h4><div class="val">${(tot/60).toFixed(1)} h</div></div>
+            </div>
+        </div>`;
+    });
+    html += `</div>`;
+
+    // Départ vs Retour
+    html += `<div class="card"><h2>📤📥 Départ vs Retour</h2>`;
+    dirs.forEach(dir => {
+        const rows = data.filter(r=>r.direction===dir);
+        if (!rows.length) return;
+        const avg = rows.reduce((s,r)=>s+r.tCtrl,0)/rows.length;
+        const tDoss = rows.reduce((s,r)=>s+r.tDossier,0);
+        html += `<div style="margin-bottom:18px;">
+            <div style="font-weight:700;color:#0f3460;margin-bottom:10px;font-size:15px;">${dir==='depart'?'📤 Départ':'📥 Retour'} — ${rows.length} pièces</div>
+            <div class="stats-row">
+                <div class="stat-box"><h4>Pièces</h4><div class="val">${rows.length}</div></div>
+                <div class="stat-box teal"><h4>Tps moyen ctrl</h4><div class="val">${avg.toFixed(2)} min</div></div>
+                <div class="stat-box amber"><h4>Total dossiers</h4><div class="val">${tDoss.toFixed(0)} min</div></div>
+            </div>
+        </div>`;
+    });
+    html += `</div>`;
+
+    c.innerHTML = html;
+}
+
+// ═══════════════════════════════════════════════
+// EXPORT EXCEL — UNE FEUILLE PAR TYPE DE PIÈCE
+// ═══════════════════════════════════════════════
+function exportExcel() {
+    if (!data.length) { alert('Aucune donnée à exporter.'); return; }
+    const wb = XLSX.utils.book_new();
+    const types = ['corniere','panier','grainage','petite'];
+    const COLS = [
+        {wch:12},{wch:14},{wch:12},{wch:12},{wch:14},{wch:10},{wch:18},
+        {wch:8},{wch:12},{wch:12},{wch:16},{wch:18},{wch:14},{wch:20}
+    ];
+
+    // Feuille 1 : Toutes les données brutes
+    const wsAll = XLSX.utils.json_to_sheet(data.map(toRow));
+    wsAll['!cols'] = COLS;
+    XLSX.utils.book_append_sheet(wb, wsAll, 'Toutes les données');
+
+    // Feuilles 2-5 : une par type, données brutes uniquement
+    types.forEach(type => {
+        const rows = data.filter(r => r.type === type);
+        if (!rows.length) return;
+        const ws = XLSX.utils.json_to_sheet(rows.map(toRow));
+        ws['!cols'] = COLS;
+        XLSX.utils.book_append_sheet(wb, ws, TYPE_LABELS[type]);
+    });
+
+    // Feuille Départ
+    const depart = data.filter(r => r.direction === 'depart');
+    if (depart.length) {
+        const ws = XLSX.utils.json_to_sheet(depart.map(toRow));
+        ws['!cols'] = COLS;
+        XLSX.utils.book_append_sheet(wb, ws, 'Départ');
+    }
+
+    // Feuille Retour
+    const retour = data.filter(r => r.direction === 'retour');
+    if (retour.length) {
+        const ws = XLSX.utils.json_to_sheet(retour.map(toRow));
+        ws['!cols'] = COLS;
+        XLSX.utils.book_append_sheet(wb, ws, 'Retour');
+    }
+
+    XLSX.writeFile(wb, `EXALTA_ST_${new Date().toISOString().split('T')[0]}.xlsx`);
+}
+
+function toRow(r) {
+    return {
+        'Date':                 new Date(r.date).toLocaleDateString('fr-FR'),
+        'Opérateur':            r.operateur,
+        'N° Affaire':           r.affaire||'',
+        'N° OF':                r.of||'',
+        'Référence':            r.ref,
+        'Direction':            r.direction === 'depart' ? 'Départ' : 'Retour',
+        'Type de pièce':        TYPE_LABELS[r.type],
+        'Pièce N°':             Number(r.pieceNumber),
+        'Taille lot':           Number(r.qt),
+        'Taille échantillon':   Number(r.ech||0),
+        'Tps dossier (min)':    r.tDossier > 0 ? Number(r.tDossier.toFixed(2)) : 0,
+        'Tps ctrl pièce (min)': Number(r.tCtrl.toFixed(2)),
+        'Total (min)':          Number(r.total.toFixed(2)),
+        'Observations':         r.obs||''
+    };
+}
+</script>
+</body>
+</html>
