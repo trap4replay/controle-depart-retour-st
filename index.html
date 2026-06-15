@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Contrôle Départ / Retour Sous-Traitance — EXALTA</title>
+<title>Contrôle Sous-Traitance — EXALTA</title>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
 <style>
 * { margin:0; padding:0; box-sizing:border-box; }
@@ -134,27 +134,6 @@ input:focus, select:focus, textarea:focus {
 .type-icon { font-size: 30px; display: block; margin-bottom: 6px; }
 .type-name { font-size: 13px; font-weight: 700; display: block; }
 
-/* DIRECTION SELECTOR */
-.direction-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin-bottom: 18px; }
-.dir-card {
-    border: 2px solid #e0e4eb;
-    border-radius: 10px;
-    padding: 18px;
-    text-align: center;
-    cursor: pointer;
-    background: white;
-    transition: all 0.2s;
-    font-weight: 700;
-    font-size: 15px;
-    color: #555;
-}
-.dir-card:hover { transform: translateY(-2px); box-shadow: 0 6px 18px rgba(0,0,0,0.1); }
-.dir-card.depart  { border-color: #f5a623; }
-.dir-card.depart.selected  { background: linear-gradient(135deg,#fff8e6,#ffefc0); border-color: #f5a623; color: #b37a00; box-shadow: 0 4px 14px rgba(245,166,35,0.25); }
-.dir-card.retour  { border-color: #00b4d8; }
-.dir-card.retour.selected  { background: linear-gradient(135deg,#e6f9fc,#b8eef8); border-color: #00b4d8; color: #006f87; box-shadow: 0 4px 14px rgba(0,180,216,0.25); }
-.dir-icon { font-size: 28px; display: block; margin-bottom: 6px; }
-
 /* CHRONO */
 .chrono-zone {
     background: white;
@@ -201,6 +180,8 @@ input:focus, select:focus, textarea:focus {
 .btn-main:hover   { transform: translateY(-2px); box-shadow: 0 8px 20px rgba(15,52,96,0.3); }
 .btn-export { background: linear-gradient(135deg, #16a085, #1abc9c); color: white; }
 .btn-export:hover { transform: translateY(-2px); box-shadow: 0 8px 20px rgba(26,188,156,0.3); }
+.btn-import { background: linear-gradient(135deg, #8e44ad, #9b59b6); color: white; }
+.btn-import:hover { transform: translateY(-2px); box-shadow: 0 8px 20px rgba(142,68,173,0.3); }
 .btn-warn   { background: linear-gradient(135deg, #b37a00, #f5a623); color: white; }
 .btn-warn:hover { transform: translateY(-2px); box-shadow: 0 8px 20px rgba(245,166,35,0.3); }
 .btn-danger { background: #e74c3c; color: white; }
@@ -222,8 +203,6 @@ tr:hover td { background: #f8f0f2; }
     display: inline-block; padding: 3px 10px;
     border-radius: 20px; font-size: 11px; font-weight: 700;
 }
-.badge-depart  { background: #fff0c0; color: #b37a00; border: 1px solid #f5a623; }
-.badge-retour  { background: #d0f4fb; color: #006f87; border: 1px solid #00b4d8; }
 .badge-corniere { background: #f0e6ff; color: #5500aa; }
 .badge-panier   { background: #e6f0ff; color: #003eaa; }
 .badge-grainage { background: #e6fff0; color: #007a2e; }
@@ -247,8 +226,10 @@ tr:hover td { background: #f8f0f2; }
 .stat-box.amber  { background: linear-gradient(135deg, #b37a00, #f5a623); }
 .stat-box.teal   { background: linear-gradient(135deg, #006f87, #00b4d8); }
 .stat-box.green  { background: linear-gradient(135deg, #006625, #27ae60); }
+.stat-box.purple { background: linear-gradient(135deg, #5500aa, #8e44ad); }
 .stat-box h4 { font-size: 11px; opacity: 0.8; text-transform: uppercase; letter-spacing: 0.4px; margin-bottom: 6px; }
 .stat-box .val { font-size: 28px; font-weight: 700; }
+.stat-box .val-sm { font-size: 20px; font-weight: 700; }
 
 /* LOT INFO */
 .lot-banner {
@@ -288,7 +269,38 @@ tr:hover td { background: #f8f0f2; }
 .live-table-wrap th { font-size: 10px; padding: 9px 8px; background: #1a2a4a; }
 .live-table-wrap td { padding: 9px 8px; }
 .cur-piece td { background: #fff8e6; color: #b37a00; font-style: italic; }
-.avg-row td { background: linear-gradient(135deg, #0f3460, #16213e); color: white; font-weight: 700; }
+
+/* IMPORT ZONE */
+.import-zone {
+    border: 2px dashed #8e44ad;
+    border-radius: 12px;
+    padding: 24px;
+    text-align: center;
+    background: linear-gradient(135deg, #f9f0ff, #f3e6ff);
+    margin-bottom: 16px;
+    cursor: pointer;
+    transition: all 0.2s;
+}
+.import-zone:hover { border-color: #5500aa; background: linear-gradient(135deg, #f0e0ff, #e8d0ff); }
+.import-zone h3 { color: #5500aa; font-size: 16px; margin-bottom: 8px; }
+.import-zone p { color: #888; font-size: 13px; }
+.import-result {
+    padding: 12px 16px;
+    border-radius: 8px;
+    font-size: 13px;
+    font-weight: 600;
+    margin-top: 12px;
+    display: none;
+}
+.import-result.success { background: #e6fff0; color: #007a2e; border: 1px solid #27ae60; }
+.import-result.error   { background: #ffe9ec; color: #c0143a; border: 1px solid #e94560; }
+
+/* STATS TABLE */
+.stats-tbl { width: 100%; border-collapse: collapse; font-size: 13px; margin-top: 12px; }
+.stats-tbl th { background: #0f3460; color: white; padding: 10px 12px; text-align: left; font-size: 11px; text-transform: uppercase; letter-spacing: 0.4px; }
+.stats-tbl td { padding: 10px 12px; border-bottom: 1px solid #e8ecf1; }
+.stats-tbl tr:nth-child(even) td { background: #f8f9fb; }
+.stats-tbl tr.total-row td { background: linear-gradient(135deg, #0f3460, #16213e); color: white; font-weight: 700; }
 
 /* FILTER ROW */
 .filter-row { display: flex; gap: 10px; flex-wrap: wrap; margin-bottom: 16px; align-items: center; }
@@ -306,7 +318,7 @@ tr:hover td { background: #f8f0f2; }
     <div class="header-top">
         <div class="header-icon">🚚</div>
         <div>
-            <h1>Contrôle Départ / Retour Sous-Traitance</h1>
+            <h1>Contrôle Sous-Traitance</h1>
             <div class="sub">Suivi des temps de dossier et de contrôle des pièces</div>
         </div>
     </div>
@@ -369,18 +381,6 @@ tr:hover td { background: #f8f0f2; }
                 </div>
             </div>
 
-            <!-- DIRECTION -->
-            <label style="display:block; margin-bottom:10px;">Direction du contrôle *</label>
-            <div class="direction-grid">
-                <div class="dir-card depart" id="dirDepart" onclick="selectDir('depart')">
-                    <span class="dir-icon">📤</span>Départ
-                </div>
-                <div class="dir-card retour" id="dirRetour" onclick="selectDir('retour')">
-                    <span class="dir-icon">📥</span>Retour
-                </div>
-            </div>
-            <input type="hidden" id="lotDirection">
-
             <!-- TYPE PIÈCE -->
             <label style="display:block; margin-bottom:10px;">Type de pièce *</label>
             <div class="type-grid">
@@ -416,7 +416,7 @@ tr:hover td { background: #f8f0f2; }
         <div class="piece-ctr" id="pieceCtr"></div>
 
         <form id="pieceForm">
-            <!-- TEMPS DOSSIER (1 seule fois) -->
+            <!-- TEMPS DOSSIER -->
             <div class="chrono-zone" id="dossierZone">
                 <div class="chrono-label">📁 Temps de préparation du dossier de fab <span style="font-weight:400; color:#bbb;">(une fois par lot)</span></div>
                 <div class="chrono-row">
@@ -514,12 +514,9 @@ tr:hover td { background: #f8f0f2; }
         <h2>📋 Toutes les données</h2>
         <div class="filter-row">
             <button class="btn btn-export" onclick="exportExcel()">📥 Exporter vers Excel</button>
+            <button class="btn btn-import" onclick="document.getElementById('importFile').click()">📤 Importer depuis Excel</button>
+            <input type="file" id="importFile" accept=".xlsx,.xls" style="display:none" onchange="importExcel(this)">
             <button class="btn btn-danger btn-sm" onclick="clearAll()">🗑️ Effacer tout</button>
-            <select id="filterDir" onchange="renderTable()">
-                <option value="">Toutes directions</option>
-                <option value="depart">Départ</option>
-                <option value="retour">Retour</option>
-            </select>
             <select id="filterType" onchange="renderTable()">
                 <option value="">Tous types</option>
                 <option value="corniere">Cornières</option>
@@ -543,6 +540,14 @@ tr:hover td { background: #f8f0f2; }
                 <option value="Incomplet">Incomplet</option>
             </select>
         </div>
+
+        <!-- Import zone -->
+        <div class="import-zone" onclick="document.getElementById('importFile').click()" id="importZone">
+            <h3>📤 Importer des données depuis Excel</h3>
+            <p>Cliquez ici ou utilisez le bouton "Importer depuis Excel" — Le fichier doit avoir le format EXALTA exporté</p>
+        </div>
+        <div class="import-result" id="importResult"></div>
+
         <div class="tbl-wrap">
             <table>
                 <thead>
@@ -552,7 +557,6 @@ tr:hover td { background: #f8f0f2; }
                         <th>Affaire</th>
                         <th>OF</th>
                         <th>Réf.</th>
-                        <th>Direction</th>
                         <th>Type pièce</th>
                         <th>Pièce N°</th>
                         <th>Taille lot</th>
@@ -591,7 +595,6 @@ let currentLot = null;
 let currentPiece = 0;
 let piecesData = [];
 let dossierSaved = false;
-let selectedDir  = '';
 let selectedType = '';
 
 const TYPE_LABELS = { corniere:'Cornières', panier:'Paniers', grainage:'Pièces grainage', petite:'Petites pièces' };
@@ -630,12 +633,6 @@ function goTab(id) {
 // ═══════════════════════════════════════════════
 // SELECTORS
 // ═══════════════════════════════════════════════
-function selectDir(d) {
-    selectedDir = d;
-    document.getElementById('lotDirection').value = d;
-    document.getElementById('dirDepart').className = 'dir-card depart' + (d==='depart' ? ' selected' : '');
-    document.getElementById('dirRetour').className = 'dir-card retour' + (d==='retour' ? ' selected' : '');
-}
 function selectType(t) {
     selectedType = t;
     document.getElementById('lotType').value = t;
@@ -647,7 +644,7 @@ function selectType(t) {
 // ═══════════════════════════════════════════════
 // CHRONO GÉNÉRIQUE
 // ═══════════════════════════════════════════════
-const CS = {}; // chrono states
+const CS = {};
 function initC(id) { CS[id] = { iv:null, s:0, running:false }; }
 
 function fmtTime(s) {
@@ -713,7 +710,6 @@ function g(id) { return document.getElementById(id); }
 document.getElementById('lotForm').addEventListener('submit', function(e) {
     e.preventDefault();
     const err = [];
-    if (!selectedDir)  err.push('Sélectionnez une direction (Départ / Retour)');
     if (!selectedType) err.push('Sélectionnez un type de pièce');
     if (err.length) {
         const el = g('lotFormErrors');
@@ -731,7 +727,6 @@ document.getElementById('lotForm').addEventListener('submit', function(e) {
         ref:       g('lotRef').value.trim(),
         qt:        parseInt(g('lotQt').value),
         ech:       parseInt(g('lotEch').value),
-        direction: selectedDir,
         type:      selectedType,
     };
     currentPiece = 1;
@@ -740,9 +735,8 @@ document.getElementById('lotForm').addEventListener('submit', function(e) {
 
     initC('dossier'); initC('ctrl'); initC('rangement');
 
-    const dirLabel = selectedDir === 'depart' ? '📤 Départ' : '📥 Retour';
     g('lotBanner').innerHTML = `
-        <h3>📦 ${currentLot.ref} — ${TYPE_LABELS[currentLot.type]} — ${dirLabel}</h3>
+        <h3>📦 ${currentLot.ref} — ${TYPE_LABELS[currentLot.type]}</h3>
         <p>${currentLot.operateur} | ${new Date(currentLot.date).toLocaleDateString('fr-FR')} | Affaire ${currentLot.affaire} | OF ${currentLot.of} | Lot : <strong>${currentLot.qt} pièces</strong> | Échantillon : <strong>${currentLot.ech} pièces</strong></p>
     `;
     updatePieceUI();
@@ -768,7 +762,6 @@ document.getElementById('pieceForm').addEventListener('submit', function(e) {
         return;
     }
 
-    // Le temps dossier n'est saisi qu'une fois (1ère pièce), ensuite 0
     const tDossierFinal = dossierSaved ? 0 : tDossier;
     if (!dossierSaved && tDossier > 0) dossierSaved = true;
 
@@ -780,7 +773,6 @@ document.getElementById('pieceForm').addEventListener('submit', function(e) {
         ref:        currentLot.ref,
         qt:         currentLot.qt,
         ech:        currentLot.ech,
-        direction:  currentLot.direction,
         type:       currentLot.type,
         pieceNumber: currentPiece,
         tDossier:   tDossierFinal,
@@ -797,16 +789,13 @@ document.getElementById('pieceForm').addEventListener('submit', function(e) {
     if (currentPiece < currentLot.ech) {
         currentPiece++;
         updatePieceUI();
-        // Reset chrono ctrl seulement, pas dossier
         resetC('ctrl');
         g('pieceObs').value = '';
-        // Griser le champ dossier après la 1ère pièce
         if (dossierSaved) {
             g('dossierZone').style.opacity = '0.4';
             g('dossierZone').style.pointerEvents = 'none';
         }
     } else {
-        // Échantillon complet → étape rangement/comptage
         goToRangement();
     }
 });
@@ -839,51 +828,33 @@ function renderLiveTable() {
 }
 
 // ═══════════════════════════════════════════════
-// VALIDATION ANTICIPÉE (échantillon incomplet)
+// VALIDATION ANTICIPÉE
 // ═══════════════════════════════════════════════
 function validateEarly() {
     if (!currentLot) return;
-
-    if (!piecesData.length) {
-        alert("⚠️ Aucune pièce n'a encore été enregistrée pour ce lot.");
-        return;
-    }
-
-    // Échantillon déjà complet → comportement normal
-    if (piecesData.length >= currentLot.ech) {
-        goToRangement();
-        return;
-    }
-
+    if (!piecesData.length) { alert("⚠️ Aucune pièce n'a encore été enregistrée pour ce lot."); return; }
+    if (piecesData.length >= currentLot.ech) { goToRangement(); return; }
     const ok = confirm(
         `Valider l'OF maintenant avec seulement ${piecesData.length} / ${currentLot.ech} pièces ?\n\n` +
         `Le contrôle sera considéré comme INTERROMPU et l'échantillon sera marqué INCOMPLET dans les données.`
     );
     if (!ok) return;
-
-    // On arrête les chronos en cours (la pièce en cours n'est pas enregistrée)
     if (CS['ctrl']?.running)    stopC('ctrl');
     if (CS['dossier']?.running) stopC('dossier');
-
     goToRangement();
 }
 
 // ═══════════════════════════════════════════════
-// ÉTAPE RANGEMENT / COMPTAGE (fin de lot)
+// ÉTAPE RANGEMENT
 // ═══════════════════════════════════════════════
 function goToRangement() {
     initC('rangement');
     const complet = piecesData.length >= currentLot.ech;
-    const dirLabel = currentLot.direction === 'depart' ? '📤 Départ' : '📥 Retour';
-
     g('rangementBanner').innerHTML = `
-        <h3>📦 ${currentLot.ref} — ${TYPE_LABELS[currentLot.type]} — ${dirLabel}</h3>
+        <h3>📦 ${currentLot.ref} — ${TYPE_LABELS[currentLot.type]}</h3>
         <p>OF ${currentLot.of} | ${piecesData.length} / ${currentLot.ech} pièces mesurées
-        ${complet
-            ? ' — ✅ Échantillon complet'
-            : ' — ⚠️ Échantillon INCOMPLET (validation anticipée, contrôle interrompu)'}</p>
+        ${complet ? ' — ✅ Échantillon complet' : ' — ⚠️ Échantillon INCOMPLET (validation anticipée, contrôle interrompu)'}</p>
     `;
-
     g('saisieSection').classList.add('hidden');
     g('rangementSection').classList.remove('hidden');
 }
@@ -891,31 +862,22 @@ function goToRangement() {
 function finishLot() {
     if (CS['rangement']?.running) stopC('rangement');
     const tRangement = getC('rangement');
-
     const echReel = piecesData.length;
     const complet = echReel >= currentLot.ech;
-
-    // Le temps de rangement/comptage est ajouté une seule fois,
-    // sur la dernière pièce mesurée du lot
     const last = piecesData[piecesData.length - 1];
     last.tRangement = tRangement;
     last.total += tRangement;
-
-    // Statut + échantillon réel sur toutes les pièces du lot (pour filtres/export)
     piecesData.forEach(p => {
         p.echReel = echReel;
         p.statut  = complet ? 'Complet' : 'Incomplet';
     });
-
     save();
     renderTable(); renderStats();
-
     if (complet) {
         alert(`✅ Lot terminé ! ${echReel} / ${currentLot.ech} pièces enregistrées.`);
     } else {
         alert(`⚠️ OF validé avec un échantillon partiel : ${echReel} / ${currentLot.ech} pièces.\nLot marqué comme INCOMPLET.`);
     }
-
     resetAll();
 }
 
@@ -924,12 +886,10 @@ function finishLot() {
 // ═══════════════════════════════════════════════
 function resetAll() {
     currentLot = null; currentPiece = 0; piecesData = []; dossierSaved = false;
-    selectedDir = ''; selectedType = '';
+    selectedType = '';
     g('lotForm').reset();
     const t = new Date();
     g('lotDate').value = `${t.getFullYear()}-${String(t.getMonth()+1).padStart(2,'0')}-${String(t.getDate()).padStart(2,'0')}`;
-    g('dirDepart').className = 'dir-card depart';
-    g('dirRetour').className = 'dir-card retour';
     ['corniere','panier','grainage','petite'].forEach(k => {
         g('type-'+k).className = 'type-card';
     });
@@ -964,12 +924,10 @@ function clearAll() {
 // TABLE HISTORIQUE
 // ═══════════════════════════════════════════════
 function renderTable() {
-    const fDir    = g('filterDir')?.value    || '';
     const fType   = g('filterType')?.value   || '';
     const fOp     = g('filterOp')?.value     || '';
     const fStatut = g('filterStatut')?.value || '';
     const filtered = data.filter(r =>
-        (!fDir    || r.direction === fDir) &&
         (!fType   || r.type === fType) &&
         (!fOp     || r.operateur === fOp) &&
         (!fStatut || (r.statut || 'Complet') === fStatut)
@@ -977,11 +935,8 @@ function renderTable() {
     const tbody = g('mainTbody');
     if (!tbody) return;
     tbody.innerHTML = '';
-    filtered.forEach((r, i) => {
-        const dirBadge = r.direction === 'depart'
-            ? '<span class="badge badge-depart">📤 Départ</span>'
-            : '<span class="badge badge-retour">📥 Retour</span>';
-        const typeBadge = `<span class="badge ${TYPE_BADGES[r.type]}">${TYPE_LABELS[r.type]}</span>`;
+    filtered.forEach((r) => {
+        const typeBadge = `<span class="badge ${TYPE_BADGES[r.type]||''}">${TYPE_LABELS[r.type]||r.type}</span>`;
         const statutBadge = (r.statut === 'Incomplet')
             ? `<span class="badge badge-incomplet">⚠️ Incomplet (${r.echReel ?? '?'}/${r.ech})</span>`
             : `<span class="badge badge-complet">✅ Complet</span>`;
@@ -992,7 +947,6 @@ function renderTable() {
             <td>${r.affaire||'-'}</td>
             <td>${r.of||'-'}</td>
             <td><strong>${r.ref}</strong></td>
-            <td>${dirBadge}</td>
             <td>${typeBadge}</td>
             <td>#${r.pieceNumber}</td>
             <td>${r.qt}</td>
@@ -1013,7 +967,115 @@ function deleteRow(i) {
 }
 
 // ═══════════════════════════════════════════════
-// STATS
+// IMPORT EXCEL
+// ═══════════════════════════════════════════════
+function importExcel(input) {
+    const file = input.files[0];
+    if (!file) return;
+    const reader = new FileReader();
+    reader.onload = function(e) {
+        try {
+            const wb = XLSX.read(e.target.result, { type: 'binary' });
+            let imported = 0;
+            let errors = 0;
+
+            // On parcourt toutes les feuilles pour trouver les données
+            // La feuille "Toutes les données" est prioritaire, sinon on prend les feuilles par type
+            const allSheets = wb.SheetNames;
+            const sourceSheet = allSheets.includes('Toutes les données') 
+                ? 'Toutes les données' 
+                : allSheets[0];
+
+            const ws = wb.Sheets[sourceSheet];
+            const rows = XLSX.utils.sheet_to_json(ws, { defval: '' });
+
+            // Map colonnes Excel → objet interne
+            const TYPE_MAP = {
+                'Cornières': 'corniere', 'Paniers': 'panier',
+                'Pièces grainage': 'grainage', 'Petites pièces': 'petite'
+            };
+
+            rows.forEach(row => {
+                try {
+                    // Parser la date (formats possibles : DD/MM/YYYY ou objet Date Excel)
+                    let dateStr = '';
+                    const rawDate = row['Date'] || '';
+                    if (rawDate instanceof Date) {
+                        dateStr = rawDate.toISOString().split('T')[0];
+                    } else if (typeof rawDate === 'number') {
+                        // Nombre de jours Excel depuis 1900
+                        const d = new Date((rawDate - 25569) * 86400 * 1000);
+                        dateStr = d.toISOString().split('T')[0];
+                    } else if (typeof rawDate === 'string' && rawDate.includes('/')) {
+                        const parts = rawDate.split('/');
+                        if (parts.length === 3) dateStr = `${parts[2]}-${parts[1].padStart(2,'0')}-${parts[0].padStart(2,'0')}`;
+                    } else {
+                        dateStr = rawDate || new Date().toISOString().split('T')[0];
+                    }
+
+                    const typeLabel = row['Type de pièce'] || '';
+                    const typeKey   = TYPE_MAP[typeLabel] || typeLabel.toLowerCase().replace(/[^a-z]/g,'');
+
+                    // Ne pas dupliquer (même OF + pièce N° + date)
+                    const isDup = data.some(d =>
+                        d.of === String(row['N° OF'] || '') &&
+                        d.pieceNumber == (row['Pièce N°'] || 0) &&
+                        d.date === dateStr
+                    );
+                    if (isDup) return;
+
+                    const entry = {
+                        date:        dateStr,
+                        operateur:   String(row['Opérateur'] || ''),
+                        affaire:     String(row['N° Affaire'] || ''),
+                        of:          String(row['N° OF'] || ''),
+                        ref:         String(row['Référence'] || ''),
+                        qt:          Number(row['Taille lot'] || 0),
+                        ech:         Number(row['Taille échantillon'] || 0),
+                        type:        typeKey || 'corniere',
+                        pieceNumber: Number(row['Pièce N°'] || 1),
+                        tDossier:    Number(row['Tps dossier (min)'] || 0),
+                        tCtrl:       Number(row['Tps ctrl pièce (min)'] || 0),
+                        tRangement:  Number(row['Tps rangement (min)'] || 0),
+                        total:       Number(row['Total (min)'] || 0),
+                        obs:         String(row['Observations'] || ''),
+                        statut:      String(row['Statut'] || 'Complet'),
+                        echReel:     Number(row['Échantillon réel'] || row['Taille échantillon'] || 0),
+                    };
+                    data.push(entry);
+                    imported++;
+                } catch(err) {
+                    errors++;
+                }
+            });
+
+            save();
+            renderTable();
+            renderStats();
+
+            const res = g('importResult');
+            res.style.display = 'block';
+            if (imported > 0) {
+                res.className = 'import-result success';
+                res.textContent = `✅ Import réussi : ${imported} ligne(s) ajoutée(s)${errors > 0 ? `, ${errors} ignorée(s)` : ''}.`;
+            } else {
+                res.className = 'import-result error';
+                res.textContent = `⚠️ Aucune nouvelle ligne importée (${errors > 0 ? `${errors} erreur(s), ` : ''}données peut-être déjà présentes ou format invalide).`;
+            }
+            setTimeout(() => { res.style.display = 'none'; }, 5000);
+        } catch(err) {
+            const res = g('importResult');
+            res.style.display = 'block';
+            res.className = 'import-result error';
+            res.textContent = `❌ Erreur lors de la lecture du fichier : ${err.message}`;
+        }
+        input.value = '';
+    };
+    reader.readAsBinaryString(file);
+}
+
+// ═══════════════════════════════════════════════
+// STATS ENRICHIES
 // ═══════════════════════════════════════════════
 function renderStats() {
     const c = g('statsContainer');
@@ -1022,67 +1084,155 @@ function renderStats() {
         return;
     }
     const types = ['corniere','panier','grainage','petite'];
-    const dirs  = ['depart','retour'];
     let html = '';
 
-    // Globaux
+    // ── 1. VUE GLOBALE ──
     const avgCtrl = data.reduce((s,r)=>s+r.tCtrl,0)/data.length;
     const minCtrl = Math.min(...data.map(r=>r.tCtrl));
     const maxCtrl = Math.max(...data.map(r=>r.tCtrl));
     const lots    = new Set(data.map(r=>r.ref+'|'+r.of)).size;
     const totalRangement = data.reduce((s,r)=>s+(r.tRangement||0),0);
-    const lotsIncomplets = new Set(
-        data.filter(r=>r.statut==='Incomplet').map(r=>r.ref+'|'+r.of)
-    ).size;
+    const totalDossier   = data.reduce((s,r)=>s+(r.tDossier||0),0);
+    const lotsIncomplets = new Set(data.filter(r=>r.statut==='Incomplet').map(r=>r.ref+'|'+r.of)).size;
+    const avgTotal = data.reduce((s,r)=>s+r.total,0)/data.length;
+
     html += `<div class="card"><h2>📊 Vue globale</h2>
         <div class="stats-row">
             <div class="stat-box"><h4>Pièces contrôlées</h4><div class="val">${data.length}</div></div>
-            <div class="stat-box amber"><h4>Lots</h4><div class="val">${lots}</div></div>
-            <div class="stat-box teal"><h4>Tps ctrl moyen</h4><div class="val">${avgCtrl.toFixed(2)} min</div></div>
-            <div class="stat-box red"><h4>Tps ctrl max</h4><div class="val">${maxCtrl.toFixed(2)} min</div></div>
-            <div class="stat-box green"><h4>Tps ctrl min</h4><div class="val">${minCtrl.toFixed(2)} min</div></div>
-            <div class="stat-box amber"><h4>Tps rangement total</h4><div class="val">${totalRangement.toFixed(1)} min</div></div>
+            <div class="stat-box amber"><h4>Lots (OF)</h4><div class="val">${lots}</div></div>
+            <div class="stat-box teal"><h4>Tps ctrl moyen / pièce</h4><div class="val-sm">${avgCtrl.toFixed(2)} min</div></div>
+            <div class="stat-box green"><h4>Tps total moyen / dossier</h4><div class="val-sm">${avgTotal.toFixed(2)} min</div></div>
+            <div class="stat-box red"><h4>Tps ctrl max</h4><div class="val-sm">${maxCtrl.toFixed(2)} min</div></div>
+            <div class="stat-box purple"><h4>Total dossiers</h4><div class="val-sm">${totalDossier.toFixed(1)} min</div></div>
+            <div class="stat-box amber"><h4>Total rangement</h4><div class="val-sm">${totalRangement.toFixed(1)} min</div></div>
             <div class="stat-box red"><h4>Lots incomplets</h4><div class="val">${lotsIncomplets}</div></div>
         </div>
     </div>`;
 
-    // Par type de pièce
-    html += `<div class="card"><h2>🔹 Par type de pièce</h2>`;
+    // ── 2. TEMPS UNITAIRE PAR TYPE DE PIÈCE ──
+    html += `<div class="card"><h2>🔹 Temps unitaires par type de pièce</h2>
+    <table class="stats-tbl">
+        <thead><tr>
+            <th>Type de pièce</th>
+            <th>Pièces</th>
+            <th>Tps ctrl moyen / pièce</th>
+            <th>Tps ctrl min</th>
+            <th>Tps ctrl max</th>
+            <th>Total ctrl cumulé</th>
+        </tr></thead>
+        <tbody>`;
+    
     types.forEach(type => {
         const rows = data.filter(r=>r.type===type);
         if (!rows.length) return;
         const avg = rows.reduce((s,r)=>s+r.tCtrl,0)/rows.length;
+        const mn  = Math.min(...rows.map(r=>r.tCtrl));
+        const mx  = Math.max(...rows.map(r=>r.tCtrl));
         const tot = rows.reduce((s,r)=>s+r.tCtrl,0);
-        html += `<div style="margin-bottom:18px;">
-            <div style="font-weight:700;color:#0f3460;margin-bottom:10px;font-size:15px;">${TYPE_LABELS[type]} — ${rows.length} pièces</div>
-            <div class="stats-row">
-                <div class="stat-box"><h4>Pièces</h4><div class="val">${rows.length}</div></div>
-                <div class="stat-box teal"><h4>Tps moyen ctrl</h4><div class="val">${avg.toFixed(2)} min</div></div>
-                <div class="stat-box amber"><h4>Total ctrl cumulé</h4><div class="val">${(tot/60).toFixed(1)} h</div></div>
-            </div>
-        </div>`;
+        html += `<tr>
+            <td><span class="badge ${TYPE_BADGES[type]}">${TYPE_LABELS[type]}</span></td>
+            <td><strong>${rows.length}</strong></td>
+            <td><strong>${avg.toFixed(2)} min</strong></td>
+            <td>${mn.toFixed(2)} min</td>
+            <td>${mx.toFixed(2)} min</td>
+            <td>${(tot/60).toFixed(2)} h</td>
+        </tr>`;
     });
-    html += `</div>`;
+    const globalAvg = data.reduce((s,r)=>s+r.tCtrl,0)/data.length;
+    const globalTot = data.reduce((s,r)=>s+r.tCtrl,0);
+    html += `<tr class="total-row">
+        <td>TOTAL / GLOBAL</td>
+        <td>${data.length}</td>
+        <td>${globalAvg.toFixed(2)} min</td>
+        <td>${Math.min(...data.map(r=>r.tCtrl)).toFixed(2)} min</td>
+        <td>${Math.max(...data.map(r=>r.tCtrl)).toFixed(2)} min</td>
+        <td>${(globalTot/60).toFixed(2)} h</td>
+    </tr>`;
+    html += `</tbody></table></div>`;
 
-    // Départ vs Retour
-    html += `<div class="card"><h2>📤📥 Départ vs Retour</h2>`;
-    dirs.forEach(dir => {
-        const rows = data.filter(r=>r.direction===dir);
-        if (!rows.length) return;
-        const avg = rows.reduce((s,r)=>s+r.tCtrl,0)/rows.length;
-        const tDoss = rows.reduce((s,r)=>s+r.tDossier,0);
-        const tRang = rows.reduce((s,r)=>s+(r.tRangement||0),0);
-        html += `<div style="margin-bottom:18px;">
-            <div style="font-weight:700;color:#0f3460;margin-bottom:10px;font-size:15px;">${dir==='depart'?'📤 Départ':'📥 Retour'} — ${rows.length} pièces</div>
-            <div class="stats-row">
-                <div class="stat-box"><h4>Pièces</h4><div class="val">${rows.length}</div></div>
-                <div class="stat-box teal"><h4>Tps moyen ctrl</h4><div class="val">${avg.toFixed(2)} min</div></div>
-                <div class="stat-box amber"><h4>Total dossiers</h4><div class="val">${tDoss.toFixed(0)} min</div></div>
-                <div class="stat-box amber"><h4>Total rangement</h4><div class="val">${tRang.toFixed(0)} min</div></div>
-            </div>
-        </div>`;
+    // ── 3. TEMPS DE DOSSIER PAR OF ──
+    const ofMap = {};
+    data.forEach(r => {
+        const key = r.of || '—';
+        if (!ofMap[key]) ofMap[key] = { of: key, affaire: r.affaire, ref: r.ref, type: r.type, tDossier: 0, tRangement: 0, pieces: 0, tCtrlTotal: 0 };
+        ofMap[key].tDossier    += (r.tDossier||0);
+        ofMap[key].tRangement  += (r.tRangement||0);
+        ofMap[key].pieces++;
+        ofMap[key].tCtrlTotal  += r.tCtrl;
     });
-    html += `</div>`;
+    const ofList = Object.values(ofMap).sort((a,b)=>a.of.localeCompare(b.of));
+
+    html += `<div class="card"><h2>📁 Temps de dossier par OF</h2>
+    <table class="stats-tbl">
+        <thead><tr>
+            <th>N° OF</th>
+            <th>Affaire</th>
+            <th>Réf.</th>
+            <th>Type</th>
+            <th>Pièces mesurées</th>
+            <th>Tps dossier (min)</th>
+            <th>Tps ctrl total (min)</th>
+            <th>Tps rangement (min)</th>
+            <th>Total OF (min)</th>
+        </tr></thead>
+        <tbody>`;
+    ofList.forEach(of => {
+        const totalOF = of.tDossier + of.tCtrlTotal + of.tRangement;
+        html += `<tr>
+            <td><strong>${of.of}</strong></td>
+            <td>${of.affaire||'—'}</td>
+            <td>${of.ref}</td>
+            <td><span class="badge ${TYPE_BADGES[of.type]||''}">${TYPE_LABELS[of.type]||of.type}</span></td>
+            <td>${of.pieces}</td>
+            <td>${of.tDossier.toFixed(2)}</td>
+            <td>${of.tCtrlTotal.toFixed(2)}</td>
+            <td>${of.tRangement.toFixed(2)}</td>
+            <td><strong>${totalOF.toFixed(2)}</strong></td>
+        </tr>`;
+    });
+    const totDoss = ofList.reduce((s,o)=>s+o.tDossier,0);
+    const totCtrl = ofList.reduce((s,o)=>s+o.tCtrlTotal,0);
+    const totRang = ofList.reduce((s,o)=>s+o.tRangement,0);
+    html += `<tr class="total-row">
+        <td colspan="5">TOTAL</td>
+        <td>${totDoss.toFixed(2)}</td>
+        <td>${totCtrl.toFixed(2)}</td>
+        <td>${totRang.toFixed(2)}</td>
+        <td>${(totDoss+totCtrl+totRang).toFixed(2)}</td>
+    </tr>`;
+    html += `</tbody></table></div>`;
+
+    // ── 4. TEMPS MOYEN GLOBAL PAR OPÉRATEUR ──
+    const opMap = {};
+    data.forEach(r => {
+        if (!opMap[r.operateur]) opMap[r.operateur] = { pieces:0, tCtrlTotal:0, tDossier:0, tRangement:0 };
+        opMap[r.operateur].pieces++;
+        opMap[r.operateur].tCtrlTotal += r.tCtrl;
+        opMap[r.operateur].tDossier   += (r.tDossier||0);
+        opMap[r.operateur].tRangement += (r.tRangement||0);
+    });
+    const opList = Object.entries(opMap).sort((a,b)=>b[1].pieces-a[1].pieces);
+
+    html += `<div class="card"><h2>👤 Temps moyens par opérateur</h2>
+    <table class="stats-tbl">
+        <thead><tr>
+            <th>Opérateur</th>
+            <th>Pièces</th>
+            <th>Tps ctrl moyen / pièce</th>
+            <th>Total dossiers (min)</th>
+            <th>Total rangement (min)</th>
+        </tr></thead>
+        <tbody>`;
+    opList.forEach(([op, v]) => {
+        html += `<tr>
+            <td><strong>${op}</strong></td>
+            <td>${v.pieces}</td>
+            <td>${(v.tCtrlTotal/v.pieces).toFixed(2)} min</td>
+            <td>${v.tDossier.toFixed(2)}</td>
+            <td>${v.tRangement.toFixed(2)}</td>
+        </tr>`;
+    });
+    html += `</tbody></table></div>`;
 
     c.innerHTML = html;
 }
@@ -1095,9 +1245,9 @@ function exportExcel() {
     const wb = XLSX.utils.book_new();
     const types = ['corniere','panier','grainage','petite'];
     const COLS = [
-        {wch:12},{wch:14},{wch:12},{wch:12},{wch:14},{wch:10},{wch:18},
+        {wch:12},{wch:14},{wch:12},{wch:12},{wch:14},{wch:18},
         {wch:8},{wch:12},{wch:12},{wch:12},{wch:14},
-        {wch:16},{wch:18},{wch:18},{wch:14},{wch:20}
+        {wch:16},{wch:18},{wch:16},{wch:14},{wch:20}
     ];
 
     // Feuille 1 : Toutes les données brutes
@@ -1105,7 +1255,7 @@ function exportExcel() {
     wsAll['!cols'] = COLS;
     XLSX.utils.book_append_sheet(wb, wsAll, 'Toutes les données');
 
-    // Feuilles 2-5 : une par type, données brutes uniquement
+    // Feuilles 2-5 : une par type
     types.forEach(type => {
         const rows = data.filter(r => r.type === type);
         if (!rows.length) return;
@@ -1114,44 +1264,76 @@ function exportExcel() {
         XLSX.utils.book_append_sheet(wb, ws, TYPE_LABELS[type]);
     });
 
-    // Feuille Départ
-    const depart = data.filter(r => r.direction === 'depart');
-    if (depart.length) {
-        const ws = XLSX.utils.json_to_sheet(depart.map(toRow));
-        ws['!cols'] = COLS;
-        XLSX.utils.book_append_sheet(wb, ws, 'Départ');
-    }
+    // Feuille Stats : résumé par type
+    const statsRows = [];
+    types.forEach(type => {
+        const rows = data.filter(r => r.type === type);
+        if (!rows.length) return;
+        const avg = rows.reduce((s,r)=>s+r.tCtrl,0)/rows.length;
+        const mn  = Math.min(...rows.map(r=>r.tCtrl));
+        const mx  = Math.max(...rows.map(r=>r.tCtrl));
+        statsRows.push({
+            'Type de pièce':           TYPE_LABELS[type],
+            'Nb pièces':               rows.length,
+            'Tps ctrl moyen (min)':    +avg.toFixed(2),
+            'Tps ctrl min (min)':      +mn.toFixed(2),
+            'Tps ctrl max (min)':      +mx.toFixed(2),
+            'Total ctrl cumulé (h)':   +(rows.reduce((s,r)=>s+r.tCtrl,0)/60).toFixed(2),
+        });
+    });
+    // Par OF
+    const ofStats = [];
+    const ofMap2 = {};
+    data.forEach(r => {
+        const key = r.of||'—';
+        if (!ofMap2[key]) ofMap2[key] = { of:key, affaire:r.affaire, ref:r.ref, type:r.type, tDossier:0, tRangement:0, pieces:0, tCtrlTotal:0 };
+        ofMap2[key].tDossier   += (r.tDossier||0);
+        ofMap2[key].tRangement += (r.tRangement||0);
+        ofMap2[key].pieces++;
+        ofMap2[key].tCtrlTotal += r.tCtrl;
+    });
+    Object.values(ofMap2).forEach(of => {
+        ofStats.push({
+            'N° OF':                of.of,
+            'N° Affaire':           of.affaire,
+            'Référence':            of.ref,
+            'Type':                 TYPE_LABELS[of.type]||of.type,
+            'Pièces mesurées':      of.pieces,
+            'Tps dossier (min)':    +of.tDossier.toFixed(2),
+            'Tps ctrl total (min)': +of.tCtrlTotal.toFixed(2),
+            'Tps rangement (min)':  +of.tRangement.toFixed(2),
+            'Total OF (min)':       +(of.tDossier+of.tCtrlTotal+of.tRangement).toFixed(2),
+        });
+    });
 
-    // Feuille Retour
-    const retour = data.filter(r => r.direction === 'retour');
-    if (retour.length) {
-        const ws = XLSX.utils.json_to_sheet(retour.map(toRow));
-        ws['!cols'] = COLS;
-        XLSX.utils.book_append_sheet(wb, ws, 'Retour');
-    }
+    const wsStats = XLSX.utils.json_to_sheet(statsRows);
+    XLSX.utils.book_append_sheet(wb, wsStats, 'Stats par type');
+
+    // Ajouter les stats OF sous les stats type sur la même feuille ou feuille séparée
+    const wsOF = XLSX.utils.json_to_sheet(ofStats);
+    XLSX.utils.book_append_sheet(wb, wsOF, 'Stats par OF');
 
     XLSX.writeFile(wb, `EXALTA_ST_${new Date().toISOString().split('T')[0]}.xlsx`);
 }
 
 function toRow(r) {
     return {
-        'Date':                 new Date(r.date).toLocaleDateString('fr-FR'),
-        'Opérateur':            r.operateur,
-        'N° Affaire':           r.affaire||'',
-        'N° OF':                r.of||'',
-        'Référence':            r.ref,
-        'Direction':            r.direction === 'depart' ? 'Départ' : 'Retour',
-        'Type de pièce':        TYPE_LABELS[r.type],
-        'Pièce N°':             Number(r.pieceNumber),
-        'Taille lot':           Number(r.qt),
-        'Taille échantillon':   Number(r.ech||0),
-        'Échantillon réel':     Number(r.echReel ?? r.ech ?? 0),
-        'Statut':               r.statut || 'Complet',
-        'Tps dossier (min)':    r.tDossier > 0 ? Number(r.tDossier.toFixed(2)) : 0,
-        'Tps ctrl pièce (min)': Number(r.tCtrl.toFixed(2)),
-        'Tps rangement (min)':  Number((r.tRangement||0).toFixed(2)),
-        'Total (min)':          Number(r.total.toFixed(2)),
-        'Observations':         r.obs||''
+        'Date':                  new Date(r.date).toLocaleDateString('fr-FR'),
+        'Opérateur':             r.operateur,
+        'N° Affaire':            r.affaire||'',
+        'N° OF':                 r.of||'',
+        'Référence':             r.ref,
+        'Type de pièce':         TYPE_LABELS[r.type]||r.type,
+        'Pièce N°':              Number(r.pieceNumber),
+        'Taille lot':            Number(r.qt),
+        'Taille échantillon':    Number(r.ech||0),
+        'Échantillon réel':      Number(r.echReel ?? r.ech ?? 0),
+        'Statut':                r.statut || 'Complet',
+        'Tps dossier (min)':     r.tDossier > 0 ? Number(r.tDossier.toFixed(2)) : 0,
+        'Tps ctrl pièce (min)':  Number(r.tCtrl.toFixed(2)),
+        'Tps rangement (min)':   Number((r.tRangement||0).toFixed(2)),
+        'Total (min)':           Number(r.total.toFixed(2)),
+        'Observations':          r.obs||''
     };
 }
 </script>
