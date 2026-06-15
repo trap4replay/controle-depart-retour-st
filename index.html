@@ -201,6 +201,8 @@ input:focus, select:focus, textarea:focus {
 .btn-main:hover   { transform: translateY(-2px); box-shadow: 0 8px 20px rgba(15,52,96,0.3); }
 .btn-export { background: linear-gradient(135deg, #16a085, #1abc9c); color: white; }
 .btn-export:hover { transform: translateY(-2px); box-shadow: 0 8px 20px rgba(26,188,156,0.3); }
+.btn-warn   { background: linear-gradient(135deg, #b37a00, #f5a623); color: white; }
+.btn-warn:hover { transform: translateY(-2px); box-shadow: 0 8px 20px rgba(245,166,35,0.3); }
 .btn-danger { background: #e74c3c; color: white; }
 .btn-sm { padding: 6px 14px; font-size: 12px; }
 
@@ -226,6 +228,8 @@ tr:hover td { background: #f8f0f2; }
 .badge-panier   { background: #e6f0ff; color: #003eaa; }
 .badge-grainage { background: #e6fff0; color: #007a2e; }
 .badge-petite   { background: #fff6e6; color: #aa5500; }
+.badge-complet   { background: #e6fff0; color: #007a2e; border: 1px solid #27ae60; }
+.badge-incomplet { background: #ffe9ec; color: #c0143a; border: 1px solid #e94560; }
 
 /* STATS */
 .stats-row { display: grid; grid-template-columns: repeat(auto-fit, minmax(160px, 1fr)); gap: 14px; margin-bottom: 22px; }
@@ -451,6 +455,7 @@ tr:hover td { background: #f8f0f2; }
 
             <div style="display:flex; gap:10px; flex-wrap:wrap;">
                 <button type="submit" class="btn btn-main">➡️ Pièce suivante</button>
+                <button type="button" class="btn btn-warn" onclick="validateEarly()">✅ Valider l'OF maintenant</button>
                 <button type="button" class="btn btn-danger" onclick="cancelLot()">❌ Annuler</button>
             </div>
         </form>
@@ -472,6 +477,31 @@ tr:hover td { background: #f8f0f2; }
                     <tbody id="liveTbody"></tbody>
                 </table>
             </div>
+        </div>
+    </div>
+
+    <!-- SECTION RANGEMENT / COMPTAGE FINAL -->
+    <div class="card hidden" id="rangementSection">
+        <h2>🧮 Rangement / comptage du lot</h2>
+        <div class="lot-banner" id="rangementBanner"></div>
+
+        <div class="chrono-zone">
+            <div class="chrono-label">🧮 Temps de rangement / comptage <span style="font-weight:400; color:#bbb;">(une fois par lot, en fin de contrôle)</span></div>
+            <div class="chrono-row">
+                <span class="chrono-display" id="cd_rangement">00:00</span>
+                <button type="button" class="btn-c start" id="cs_rangement" onclick="startC('rangement')">▶ Démarrer</button>
+                <button type="button" class="btn-c pause" id="cp_rangement" onclick="pauseC('rangement')" style="display:none">⏸ Pause</button>
+                <button type="button" class="btn-c stop"  id="ck_rangement" onclick="stopC('rangement')"  style="display:none">⏹ Arrêter</button>
+                <button type="button" class="btn-c reset" onclick="resetC('rangement')">↺</button>
+            </div>
+            <div class="manual-input">
+                <input type="number" id="ci_rangement" step="0.01" min="0" placeholder="0.00" oninput="manualC('rangement')">
+                <span>min (saisie manuelle)</span>
+            </div>
+        </div>
+
+        <div style="display:flex; gap:10px; flex-wrap:wrap;">
+            <button type="button" class="btn btn-main" onclick="finishLot()">✅ Terminer le lot</button>
         </div>
     </div>
 </div>
@@ -507,6 +537,11 @@ tr:hover td { background: #f8f0f2; }
                 <option>Nicolas</option>
                 <option>Leila</option>
             </select>
+            <select id="filterStatut" onchange="renderTable()">
+                <option value="">Tous statuts</option>
+                <option value="Complet">Complet</option>
+                <option value="Incomplet">Incomplet</option>
+            </select>
         </div>
         <div class="tbl-wrap">
             <table>
@@ -524,8 +559,10 @@ tr:hover td { background: #f8f0f2; }
                         <th>Échantillon</th>
                         <th>Dossier (min)</th>
                         <th>Ctrl pièce (min)</th>
+                        <th>Rangement (min)</th>
                         <th>Total (min)</th>
                         <th>Obs.</th>
+                        <th>Statut</th>
                         <th></th>
                     </tr>
                 </thead>
@@ -701,7 +738,7 @@ document.getElementById('lotForm').addEventListener('submit', function(e) {
     piecesData   = [];
     dossierSaved = false;
 
-    initC('dossier'); initC('ctrl');
+    initC('dossier'); initC('ctrl'); initC('rangement');
 
     const dirLabel = selectedDir === 'depart' ? '📤 Départ' : '📥 Retour';
     g('lotBanner').innerHTML = `
@@ -748,6 +785,7 @@ document.getElementById('pieceForm').addEventListener('submit', function(e) {
         pieceNumber: currentPiece,
         tDossier:   tDossierFinal,
         tCtrl:      tCtrl,
+        tRangement: 0,
         total:      tDossierFinal + tCtrl,
         obs:        g('pieceObs').value.trim()
     };
@@ -768,9 +806,8 @@ document.getElementById('pieceForm').addEventListener('submit', function(e) {
             g('dossierZone').style.pointerEvents = 'none';
         }
     } else {
-        // Lot terminé
-        alert(`✅ Lot terminé ! ${currentLot.qt} pièces enregistrées.`);
-        resetAll();
+        // Échantillon complet → étape rangement/comptage
+        goToRangement();
     }
 });
 
@@ -802,6 +839,87 @@ function renderLiveTable() {
 }
 
 // ═══════════════════════════════════════════════
+// VALIDATION ANTICIPÉE (échantillon incomplet)
+// ═══════════════════════════════════════════════
+function validateEarly() {
+    if (!currentLot) return;
+
+    if (!piecesData.length) {
+        alert("⚠️ Aucune pièce n'a encore été enregistrée pour ce lot.");
+        return;
+    }
+
+    // Échantillon déjà complet → comportement normal
+    if (piecesData.length >= currentLot.ech) {
+        goToRangement();
+        return;
+    }
+
+    const ok = confirm(
+        `Valider l'OF maintenant avec seulement ${piecesData.length} / ${currentLot.ech} pièces ?\n\n` +
+        `Le contrôle sera considéré comme INTERROMPU et l'échantillon sera marqué INCOMPLET dans les données.`
+    );
+    if (!ok) return;
+
+    // On arrête les chronos en cours (la pièce en cours n'est pas enregistrée)
+    if (CS['ctrl']?.running)    stopC('ctrl');
+    if (CS['dossier']?.running) stopC('dossier');
+
+    goToRangement();
+}
+
+// ═══════════════════════════════════════════════
+// ÉTAPE RANGEMENT / COMPTAGE (fin de lot)
+// ═══════════════════════════════════════════════
+function goToRangement() {
+    initC('rangement');
+    const complet = piecesData.length >= currentLot.ech;
+    const dirLabel = currentLot.direction === 'depart' ? '📤 Départ' : '📥 Retour';
+
+    g('rangementBanner').innerHTML = `
+        <h3>📦 ${currentLot.ref} — ${TYPE_LABELS[currentLot.type]} — ${dirLabel}</h3>
+        <p>OF ${currentLot.of} | ${piecesData.length} / ${currentLot.ech} pièces mesurées
+        ${complet
+            ? ' — ✅ Échantillon complet'
+            : ' — ⚠️ Échantillon INCOMPLET (validation anticipée, contrôle interrompu)'}</p>
+    `;
+
+    g('saisieSection').classList.add('hidden');
+    g('rangementSection').classList.remove('hidden');
+}
+
+function finishLot() {
+    if (CS['rangement']?.running) stopC('rangement');
+    const tRangement = getC('rangement');
+
+    const echReel = piecesData.length;
+    const complet = echReel >= currentLot.ech;
+
+    // Le temps de rangement/comptage est ajouté une seule fois,
+    // sur la dernière pièce mesurée du lot
+    const last = piecesData[piecesData.length - 1];
+    last.tRangement = tRangement;
+    last.total += tRangement;
+
+    // Statut + échantillon réel sur toutes les pièces du lot (pour filtres/export)
+    piecesData.forEach(p => {
+        p.echReel = echReel;
+        p.statut  = complet ? 'Complet' : 'Incomplet';
+    });
+
+    save();
+    renderTable(); renderStats();
+
+    if (complet) {
+        alert(`✅ Lot terminé ! ${echReel} / ${currentLot.ech} pièces enregistrées.`);
+    } else {
+        alert(`⚠️ OF validé avec un échantillon partiel : ${echReel} / ${currentLot.ech} pièces.\nLot marqué comme INCOMPLET.`);
+    }
+
+    resetAll();
+}
+
+// ═══════════════════════════════════════════════
 // RESET
 // ═══════════════════════════════════════════════
 function resetAll() {
@@ -819,6 +937,8 @@ function resetAll() {
     g('dossierZone').style.pointerEvents = '';
     g('liveTable').style.display = 'none';
     g('liveTbody').innerHTML = '';
+    g('rangementSection').classList.add('hidden');
+    resetC('rangement');
     g('lotSection').classList.remove('hidden');
     g('saisieSection').classList.add('hidden');
     renderTable(); renderStats();
@@ -844,13 +964,15 @@ function clearAll() {
 // TABLE HISTORIQUE
 // ═══════════════════════════════════════════════
 function renderTable() {
-    const fDir  = g('filterDir')?.value  || '';
-    const fType = g('filterType')?.value || '';
-    const fOp   = g('filterOp')?.value   || '';
+    const fDir    = g('filterDir')?.value    || '';
+    const fType   = g('filterType')?.value   || '';
+    const fOp     = g('filterOp')?.value     || '';
+    const fStatut = g('filterStatut')?.value || '';
     const filtered = data.filter(r =>
-        (!fDir  || r.direction === fDir) &&
-        (!fType || r.type === fType) &&
-        (!fOp   || r.operateur === fOp)
+        (!fDir    || r.direction === fDir) &&
+        (!fType   || r.type === fType) &&
+        (!fOp     || r.operateur === fOp) &&
+        (!fStatut || (r.statut || 'Complet') === fStatut)
     );
     const tbody = g('mainTbody');
     if (!tbody) return;
@@ -860,6 +982,9 @@ function renderTable() {
             ? '<span class="badge badge-depart">📤 Départ</span>'
             : '<span class="badge badge-retour">📥 Retour</span>';
         const typeBadge = `<span class="badge ${TYPE_BADGES[r.type]}">${TYPE_LABELS[r.type]}</span>`;
+        const statutBadge = (r.statut === 'Incomplet')
+            ? `<span class="badge badge-incomplet">⚠️ Incomplet (${r.echReel ?? '?'}/${r.ech})</span>`
+            : `<span class="badge badge-complet">✅ Complet</span>`;
         const tr = document.createElement('tr');
         tr.innerHTML = `
             <td>${new Date(r.date).toLocaleDateString('fr-FR')}</td>
@@ -874,8 +999,10 @@ function renderTable() {
             <td>${r.ech||'-'}</td>
             <td>${r.tDossier > 0 ? r.tDossier.toFixed(2) : '—'}</td>
             <td>${r.tCtrl.toFixed(2)}</td>
+            <td>${(r.tRangement||0) > 0 ? r.tRangement.toFixed(2) : '—'}</td>
             <td><strong>${r.total.toFixed(2)}</strong></td>
             <td>${r.obs||'—'}</td>
+            <td>${statutBadge}</td>
             <td><button class="btn btn-danger btn-sm" onclick="deleteRow(${data.indexOf(r)})">🗑️</button></td>`;
         tbody.appendChild(tr);
     });
@@ -903,6 +1030,10 @@ function renderStats() {
     const minCtrl = Math.min(...data.map(r=>r.tCtrl));
     const maxCtrl = Math.max(...data.map(r=>r.tCtrl));
     const lots    = new Set(data.map(r=>r.ref+'|'+r.of)).size;
+    const totalRangement = data.reduce((s,r)=>s+(r.tRangement||0),0);
+    const lotsIncomplets = new Set(
+        data.filter(r=>r.statut==='Incomplet').map(r=>r.ref+'|'+r.of)
+    ).size;
     html += `<div class="card"><h2>📊 Vue globale</h2>
         <div class="stats-row">
             <div class="stat-box"><h4>Pièces contrôlées</h4><div class="val">${data.length}</div></div>
@@ -910,6 +1041,8 @@ function renderStats() {
             <div class="stat-box teal"><h4>Tps ctrl moyen</h4><div class="val">${avgCtrl.toFixed(2)} min</div></div>
             <div class="stat-box red"><h4>Tps ctrl max</h4><div class="val">${maxCtrl.toFixed(2)} min</div></div>
             <div class="stat-box green"><h4>Tps ctrl min</h4><div class="val">${minCtrl.toFixed(2)} min</div></div>
+            <div class="stat-box amber"><h4>Tps rangement total</h4><div class="val">${totalRangement.toFixed(1)} min</div></div>
+            <div class="stat-box red"><h4>Lots incomplets</h4><div class="val">${lotsIncomplets}</div></div>
         </div>
     </div>`;
 
@@ -938,12 +1071,14 @@ function renderStats() {
         if (!rows.length) return;
         const avg = rows.reduce((s,r)=>s+r.tCtrl,0)/rows.length;
         const tDoss = rows.reduce((s,r)=>s+r.tDossier,0);
+        const tRang = rows.reduce((s,r)=>s+(r.tRangement||0),0);
         html += `<div style="margin-bottom:18px;">
             <div style="font-weight:700;color:#0f3460;margin-bottom:10px;font-size:15px;">${dir==='depart'?'📤 Départ':'📥 Retour'} — ${rows.length} pièces</div>
             <div class="stats-row">
                 <div class="stat-box"><h4>Pièces</h4><div class="val">${rows.length}</div></div>
                 <div class="stat-box teal"><h4>Tps moyen ctrl</h4><div class="val">${avg.toFixed(2)} min</div></div>
                 <div class="stat-box amber"><h4>Total dossiers</h4><div class="val">${tDoss.toFixed(0)} min</div></div>
+                <div class="stat-box amber"><h4>Total rangement</h4><div class="val">${tRang.toFixed(0)} min</div></div>
             </div>
         </div>`;
     });
@@ -961,7 +1096,8 @@ function exportExcel() {
     const types = ['corniere','panier','grainage','petite'];
     const COLS = [
         {wch:12},{wch:14},{wch:12},{wch:12},{wch:14},{wch:10},{wch:18},
-        {wch:8},{wch:12},{wch:12},{wch:16},{wch:18},{wch:14},{wch:20}
+        {wch:8},{wch:12},{wch:12},{wch:12},{wch:14},
+        {wch:16},{wch:18},{wch:18},{wch:14},{wch:20}
     ];
 
     // Feuille 1 : Toutes les données brutes
@@ -1009,8 +1145,11 @@ function toRow(r) {
         'Pièce N°':             Number(r.pieceNumber),
         'Taille lot':           Number(r.qt),
         'Taille échantillon':   Number(r.ech||0),
+        'Échantillon réel':     Number(r.echReel ?? r.ech ?? 0),
+        'Statut':               r.statut || 'Complet',
         'Tps dossier (min)':    r.tDossier > 0 ? Number(r.tDossier.toFixed(2)) : 0,
         'Tps ctrl pièce (min)': Number(r.tCtrl.toFixed(2)),
+        'Tps rangement (min)':  Number((r.tRangement||0).toFixed(2)),
         'Total (min)':          Number(r.total.toFixed(2)),
         'Observations':         r.obs||''
     };
