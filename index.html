@@ -437,7 +437,7 @@ tr:hover td { background: #f8f0f2; }
         <form id="pieceForm">
             <!-- TEMPS DOSSIER -->
             <div class="chrono-zone" id="dossierZone">
-                <div class="chrono-label">📁 Temps de préparation du dossier de fab <span style="font-weight:400; color:#bbb;">(une fois par lot)</span></div>
+                <div class="chrono-label" id="dossierLabel">📁 Temps de préparation du dossier de fab <span style="font-weight:400; color:#bbb;">(1ère pièce : ouverture OF)</span></div>
                 <div class="chrono-row">
                     <span class="chrono-display" id="cd_dossier">00:00</span>
                     <button type="button" class="btn-c start" id="cs_dossier" onclick="startC('dossier')">▶ Démarrer</button>
@@ -451,9 +451,9 @@ tr:hover td { background: #f8f0f2; }
                 </div>
             </div>
 
-            <!-- TEMPS DÉBALLAGE (une fois par lot) -->
+            <!-- TEMPS DÉBALLAGE (toutes les pièces) -->
             <div class="chrono-zone" id="deballageZone">
-                <div class="chrono-label">📦 Temps de déballage <span style="font-weight:400; color:#bbb;">(une fois par lot)</span></div>
+                <div class="chrono-label">📦 Temps de déballage <span style="font-weight:400; color:#bbb;">(chaque pièce)</span></div>
                 <div class="chrono-row">
                     <span class="chrono-display" id="cd_deballage">00:00</span>
                     <button type="button" class="btn-c start" id="cs_deballage" onclick="startC('deballage')">▶ Démarrer</button>
@@ -504,6 +504,7 @@ tr:hover td { background: #f8f0f2; }
                         <tr>
                             <th>Pièce</th>
                             <th>📁 Dossier</th>
+                            <th>📦 Déballage</th>
                             <th>🔍 Ctrl pièce</th>
                             <th>Total</th>
                             <th>Obs.</th>
@@ -804,12 +805,12 @@ document.getElementById('lotForm').addEventListener('submit', function(e) {
 // ═══════════════════════════════════════════════
 document.getElementById('pieceForm').addEventListener('submit', function(e) {
     e.preventDefault();
-    if (CS['ctrl']?.running) stopC('ctrl');
-    if (CS['dossier']?.running) stopC('dossier');
+    if (CS['ctrl']?.running)     stopC('ctrl');
+    if (CS['dossier']?.running)  stopC('dossier');
     if (CS['deballage']?.running) stopC('deballage');
 
     const tDossier   = getC('dossier');
-    const tDeballage = getC('deballage');
+    const tDeballage = getC('deballage');   // saisi sur chaque pièce
     const tCtrl      = getC('ctrl');
 
     if (tCtrl <= 0) {
@@ -817,10 +818,14 @@ document.getElementById('pieceForm').addEventListener('submit', function(e) {
         return;
     }
 
-    const tDossierFinal   = dossierSaved   ? 0 : tDossier;
-    const tDeballageFinal = deballageSaved ? 0 : tDeballage;
-    if (!dossierSaved   && tDossier   > 0) dossierSaved   = true;
-    if (!deballageSaved && tDeballage > 0) deballageSaved = true;
+    // Dossier : accepté sur la 1ère pièce uniquement (ouverture OF)
+    // Il sera de nouveau demandé sur la dernière pièce (clôture OF) — géré dans updatePieceUI
+    const isFirst = currentPiece === 1;
+    const isLast  = currentPiece === currentLot.ech;
+    const tDossierFinal = (isFirst || isLast) ? tDossier : 0;
+
+    // Déballage : toujours pris en compte
+    const tDeballageFinal = tDeballage;
 
     const entry = {
         date:        currentLot.date,
@@ -849,15 +854,10 @@ document.getElementById('pieceForm').addEventListener('submit', function(e) {
         currentPiece++;
         updatePieceUI();
         resetC('ctrl');
+        resetC('deballage');   // déballage reset à chaque pièce
         g('pieceObs').value = '';
-        if (dossierSaved) {
-            g('dossierZone').style.opacity = '0.4';
-            g('dossierZone').style.pointerEvents = 'none';
-        }
-        if (deballageSaved) {
-            g('deballageZone').style.opacity = '0.4';
-            g('deballageZone').style.pointerEvents = 'none';
-        }
+        // Dossier : visible seulement sur 1ère et dernière pièce
+        updateDossierVisibility();
     } else {
         goToRangement();
     }
@@ -867,6 +867,30 @@ function updatePieceUI() {
     const pct = Math.round(((currentPiece-1)/currentLot.ech)*100);
     g('progFill').style.width = pct+'%'; g('progFill').textContent = pct+'%';
     g('pieceCtr').textContent = `Pièce ${currentPiece} / ${currentLot.ech}`;
+    updateDossierVisibility();
+}
+
+function updateDossierVisibility() {
+    const isFirst = currentPiece === 1;
+    const isLast  = currentPiece === currentLot.ech;
+    const dz = g('dossierZone');
+    const dl = g('dossierLabel');
+    if (isFirst) {
+        dz.style.opacity = '1';
+        dz.style.pointerEvents = '';
+        dl.innerHTML = '📁 Temps de préparation du dossier de fab <span style="font-weight:400; color:#bbb;">(1ère pièce : ouverture OF)</span>';
+        resetC('dossier');
+    } else if (isLast) {
+        dz.style.opacity = '1';
+        dz.style.pointerEvents = '';
+        dl.innerHTML = '📁 Temps de clôture du dossier de fab <span style="font-weight:400; color:#bbb;">(dernière pièce : remplissage OF)</span>';
+        resetC('dossier');
+    } else {
+        dz.style.opacity = '0.3';
+        dz.style.pointerEvents = 'none';
+        dl.innerHTML = '📁 Dossier <span style="font-weight:400; color:#bbb;">(non applicable — pièces intermédiaires)</span>';
+        resetC('dossier');
+    }
 }
 
 function renderLiveTable() {
@@ -876,6 +900,7 @@ function renderLiveTable() {
         rows += `<tr>
             <td><strong>#${p.pieceNumber}</strong></td>
             <td>${p.tDossier > 0 ? fmt(p.tDossier) : '<span style="color:#ccc">—</span>'}</td>
+            <td>${(p.tDeballage||0) > 0 ? fmt(p.tDeballage) : '<span style="color:#ccc">—</span>'}</td>
             <td>${fmt(p.tCtrl)}</td>
             <td><strong>${fmt(p.total)}</strong></td>
             <td>${p.obs||'—'}</td>
@@ -884,7 +909,7 @@ function renderLiveTable() {
     if (piecesData.length < currentLot.ech) {
         rows += `<tr class="cur-piece">
             <td><strong>#${piecesData.length+1}</strong></td>
-            <td colspan="4" style="text-align:center;">en cours…</td>
+            <td colspan="5" style="text-align:center;">en cours…</td>
         </tr>`;
     }
     g('liveTbody').innerHTML = rows;
@@ -896,8 +921,8 @@ function renderLiveTable() {
 function validateEarly() {
     if (!currentLot) return;
     if (!piecesData.length) { alert("⚠️ Enregistrez au moins une pièce avant de valider."); return; }
-    if (CS['ctrl']?.running)     stopC('ctrl');
-    if (CS['dossier']?.running)  stopC('dossier');
+    if (CS['ctrl']?.running)      stopC('ctrl');
+    if (CS['dossier']?.running)   stopC('dossier');
     if (CS['deballage']?.running) stopC('deballage');
     goToRangement();
 }
@@ -950,6 +975,9 @@ function resetAll() {
     g('liveTbody').innerHTML = '';
     g('rangementSection').classList.add('hidden');
     resetC('rangement');
+    resetC('dossier');
+    resetC('deballage');
+    resetC('ctrl');
     g('lotSection').classList.remove('hidden');
     g('saisieSection').classList.add('hidden');
     renderTable(); renderStats();
