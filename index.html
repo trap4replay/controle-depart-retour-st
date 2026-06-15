@@ -207,6 +207,7 @@ tr:hover td { background: #f8f0f2; }
 .badge-panier   { background: #e6f0ff; color: #003eaa; }
 .badge-grainage { background: #e6fff0; color: #007a2e; }
 .badge-petite   { background: #fff6e6; color: #aa5500; }
+.badge-deballage{ background: #fff0e6; color: #aa2200; }
 .badge-complet   { background: #e6fff0; color: #007a2e; border: 1px solid #27ae60; }
 .badge-incomplet { background: #ffe9ec; color: #c0143a; border: 1px solid #e94560; }
 
@@ -381,6 +382,20 @@ tr:hover td { background: #f8f0f2; }
                 </div>
             </div>
 
+            <!-- DIRECTION -->
+            <label style="display:block; margin-bottom:10px; font-size:12px; font-weight:700; color:#444; text-transform:uppercase; letter-spacing:0.4px;">Direction *</label>
+            <div style="display:grid; grid-template-columns:1fr 1fr; gap:12px; margin-bottom:20px;">
+                <div class="type-card" id="dir-depart" onclick="selectDir('depart')" style="border-color:#f5a623;">
+                    <span class="type-icon">📤</span>
+                    <span class="type-name">Départ ST</span>
+                </div>
+                <div class="type-card" id="dir-retour" onclick="selectDir('retour')" style="border-color:#00b4d8;">
+                    <span class="type-icon">📥</span>
+                    <span class="type-name">Retour ST</span>
+                </div>
+            </div>
+            <input type="hidden" id="lotDirection">
+
             <!-- TYPE PIÈCE -->
             <label style="display:block; margin-bottom:10px;">Type de pièce *</label>
             <div class="type-grid">
@@ -399,6 +414,10 @@ tr:hover td { background: #f8f0f2; }
                 <div class="type-card" id="type-petite" onclick="selectType('petite')">
                     <span class="type-icon">🔹</span>
                     <span class="type-name">Petites pièces</span>
+                </div>
+                <div class="type-card" id="type-deballage" onclick="selectType('deballage')">
+                    <span class="type-icon">📦</span>
+                    <span class="type-name">Déballage</span>
                 </div>
             </div>
             <input type="hidden" id="lotType">
@@ -428,6 +447,22 @@ tr:hover td { background: #f8f0f2; }
                 </div>
                 <div class="manual-input">
                     <input type="number" id="ci_dossier" step="0.01" min="0" placeholder="0.00" oninput="manualC('dossier')">
+                    <span>min (saisie manuelle)</span>
+                </div>
+            </div>
+
+            <!-- TEMPS DÉBALLAGE (une fois par lot) -->
+            <div class="chrono-zone" id="deballageZone">
+                <div class="chrono-label">📦 Temps de déballage <span style="font-weight:400; color:#bbb;">(une fois par lot)</span></div>
+                <div class="chrono-row">
+                    <span class="chrono-display" id="cd_deballage">00:00</span>
+                    <button type="button" class="btn-c start" id="cs_deballage" onclick="startC('deballage')">▶ Démarrer</button>
+                    <button type="button" class="btn-c pause" id="cp_deballage" onclick="pauseC('deballage')" style="display:none">⏸ Pause</button>
+                    <button type="button" class="btn-c stop"  id="ck_deballage" onclick="stopC('deballage')"  style="display:none">⏹ Arrêter</button>
+                    <button type="button" class="btn-c reset" onclick="resetC('deballage')">↺</button>
+                </div>
+                <div class="manual-input">
+                    <input type="number" id="ci_deballage" step="0.01" min="0" placeholder="0.00" oninput="manualC('deballage')">
                     <span>min (saisie manuelle)</span>
                 </div>
             </div>
@@ -557,11 +592,13 @@ tr:hover td { background: #f8f0f2; }
                         <th>Affaire</th>
                         <th>OF</th>
                         <th>Réf.</th>
+                        <th>Direction</th>
                         <th>Type pièce</th>
                         <th>Pièce N°</th>
                         <th>Taille lot</th>
                         <th>Échantillon</th>
                         <th>Dossier (min)</th>
+                        <th>Déballage (min)</th>
                         <th>Ctrl pièce (min)</th>
                         <th>Rangement (min)</th>
                         <th>Total (min)</th>
@@ -595,12 +632,14 @@ let currentLot = null;
 let currentPiece = 0;
 let piecesData = [];
 let dossierSaved = false;
+let deballageSaved = false;
 let selectedType = '';
+let selectedDir  = '';
 
-const TYPE_LABELS = { corniere:'Cornières', panier:'Paniers', grainage:'Pièces grainage', petite:'Petites pièces' };
+const TYPE_LABELS = { corniere:'Cornières', panier:'Paniers', grainage:'Pièces grainage', petite:'Petites pièces', deballage:'Déballage' };
 const TYPE_BADGES = {
     corniere:'badge-corniere', panier:'badge-panier',
-    grainage:'badge-grainage', petite:'badge-petite'
+    grainage:'badge-grainage', petite:'badge-petite', deballage:'badge-deballage'
 };
 
 // ═══════════════════════════════════════════════
@@ -636,9 +675,19 @@ function goTab(id) {
 function selectType(t) {
     selectedType = t;
     document.getElementById('lotType').value = t;
-    ['corniere','panier','grainage','petite'].forEach(k => {
+    ['corniere','panier','grainage','petite','deballage'].forEach(k => {
         document.getElementById('type-'+k).className = 'type-card' + (k===t ? ' selected' : '');
     });
+}
+
+function selectDir(d) {
+    selectedDir = d;
+    document.getElementById('lotDirection').value = d;
+    document.getElementById('dir-depart').className = 'type-card' + (d==='depart' ? ' selected' : '');
+    document.getElementById('dir-retour').className = 'type-card' + (d==='retour' ? ' selected' : '');
+    // Fix border colors after class reset
+    document.getElementById('dir-depart').style.borderColor = d==='depart' ? '#f5a623' : '';
+    document.getElementById('dir-retour').style.borderColor = d==='retour' ? '#00b4d8' : '';
 }
 
 // ═══════════════════════════════════════════════
@@ -710,6 +759,7 @@ function g(id) { return document.getElementById(id); }
 document.getElementById('lotForm').addEventListener('submit', function(e) {
     e.preventDefault();
     const err = [];
+    if (!selectedDir)  err.push('Sélectionnez une direction (Départ ST / Retour ST)');
     if (!selectedType) err.push('Sélectionnez un type de pièce');
     if (err.length) {
         const el = g('lotFormErrors');
@@ -728,15 +778,18 @@ document.getElementById('lotForm').addEventListener('submit', function(e) {
         qt:        parseInt(g('lotQt').value),
         ech:       parseInt(g('lotEch').value),
         type:      selectedType,
+        direction: selectedDir,
     };
     currentPiece = 1;
     piecesData   = [];
-    dossierSaved = false;
+    dossierSaved   = false;
+    deballageSaved = false;
 
-    initC('dossier'); initC('ctrl'); initC('rangement');
+    initC('dossier'); initC('deballage'); initC('ctrl'); initC('rangement');
 
+    const dirLabel = selectedDir === 'depart' ? '📤 Départ ST' : '📥 Retour ST';
     g('lotBanner').innerHTML = `
-        <h3>📦 ${currentLot.ref} — ${TYPE_LABELS[currentLot.type]}</h3>
+        <h3>📦 ${currentLot.ref} — ${TYPE_LABELS[currentLot.type]} — ${dirLabel}</h3>
         <p>${currentLot.operateur} | ${new Date(currentLot.date).toLocaleDateString('fr-FR')} | Affaire ${currentLot.affaire} | OF ${currentLot.of} | Lot : <strong>${currentLot.qt} pièces</strong> | Échantillon : <strong>${currentLot.ech} pièces</strong></p>
     `;
     updatePieceUI();
@@ -753,33 +806,39 @@ document.getElementById('pieceForm').addEventListener('submit', function(e) {
     e.preventDefault();
     if (CS['ctrl']?.running) stopC('ctrl');
     if (CS['dossier']?.running) stopC('dossier');
+    if (CS['deballage']?.running) stopC('deballage');
 
-    const tDossier = getC('dossier');
-    const tCtrl    = getC('ctrl');
+    const tDossier   = getC('dossier');
+    const tDeballage = getC('deballage');
+    const tCtrl      = getC('ctrl');
 
     if (tCtrl <= 0) {
         alert('⚠️ Veuillez renseigner le temps de contrôle de la pièce.');
         return;
     }
 
-    const tDossierFinal = dossierSaved ? 0 : tDossier;
-    if (!dossierSaved && tDossier > 0) dossierSaved = true;
+    const tDossierFinal   = dossierSaved   ? 0 : tDossier;
+    const tDeballageFinal = deballageSaved ? 0 : tDeballage;
+    if (!dossierSaved   && tDossier   > 0) dossierSaved   = true;
+    if (!deballageSaved && tDeballage > 0) deballageSaved = true;
 
     const entry = {
-        date:       currentLot.date,
-        operateur:  currentLot.operateur,
-        affaire:    currentLot.affaire,
-        of:         currentLot.of,
-        ref:        currentLot.ref,
-        qt:         currentLot.qt,
-        ech:        currentLot.ech,
-        type:       currentLot.type,
+        date:        currentLot.date,
+        operateur:   currentLot.operateur,
+        affaire:     currentLot.affaire,
+        of:          currentLot.of,
+        ref:         currentLot.ref,
+        qt:          currentLot.qt,
+        ech:         currentLot.ech,
+        type:        currentLot.type,
+        direction:   currentLot.direction,
         pieceNumber: currentPiece,
-        tDossier:   tDossierFinal,
-        tCtrl:      tCtrl,
-        tRangement: 0,
-        total:      tDossierFinal + tCtrl,
-        obs:        g('pieceObs').value.trim()
+        tDossier:    tDossierFinal,
+        tDeballage:  tDeballageFinal,
+        tCtrl:       tCtrl,
+        tRangement:  0,
+        total:       tDossierFinal + tDeballageFinal + tCtrl,
+        obs:         g('pieceObs').value.trim()
     };
     data.push(entry);
     piecesData.push(entry);
@@ -794,6 +853,10 @@ document.getElementById('pieceForm').addEventListener('submit', function(e) {
         if (dossierSaved) {
             g('dossierZone').style.opacity = '0.4';
             g('dossierZone').style.pointerEvents = 'none';
+        }
+        if (deballageSaved) {
+            g('deballageZone').style.opacity = '0.4';
+            g('deballageZone').style.pointerEvents = 'none';
         }
     } else {
         goToRangement();
@@ -885,16 +948,20 @@ function finishLot() {
 // RESET
 // ═══════════════════════════════════════════════
 function resetAll() {
-    currentLot = null; currentPiece = 0; piecesData = []; dossierSaved = false;
-    selectedType = '';
+    currentLot = null; currentPiece = 0; piecesData = []; dossierSaved = false; deballageSaved = false;
+    selectedType = ''; selectedDir = '';
     g('lotForm').reset();
     const t = new Date();
     g('lotDate').value = `${t.getFullYear()}-${String(t.getMonth()+1).padStart(2,'0')}-${String(t.getDate()).padStart(2,'0')}`;
-    ['corniere','panier','grainage','petite'].forEach(k => {
+    ['corniere','panier','grainage','petite','deballage'].forEach(k => {
         g('type-'+k).className = 'type-card';
     });
+    g('dir-depart').className = 'type-card';
+    g('dir-retour').className = 'type-card';
     g('dossierZone').style.opacity = '1';
     g('dossierZone').style.pointerEvents = '';
+    g('deballageZone').style.opacity = '1';
+    g('deballageZone').style.pointerEvents = '';
     g('liveTable').style.display = 'none';
     g('liveTbody').innerHTML = '';
     g('rangementSection').classList.add('hidden');
@@ -947,11 +1014,13 @@ function renderTable() {
             <td>${r.affaire||'-'}</td>
             <td>${r.of||'-'}</td>
             <td><strong>${r.ref}</strong></td>
+            <td>${r.direction === 'depart' ? '<span class="badge" style="background:#fff0c0;color:#b37a00;border:1px solid #f5a623">📤 Départ ST</span>' : r.direction === 'retour' ? '<span class="badge" style="background:#d0f4fb;color:#006f87;border:1px solid #00b4d8">📥 Retour ST</span>' : '—'}</td>
             <td>${typeBadge}</td>
             <td>#${r.pieceNumber}</td>
             <td>${r.qt}</td>
             <td>${r.ech||'-'}</td>
             <td>${r.tDossier > 0 ? r.tDossier.toFixed(2) : '—'}</td>
+            <td>${(r.tDeballage||0) > 0 ? r.tDeballage.toFixed(2) : '—'}</td>
             <td>${r.tCtrl.toFixed(2)}</td>
             <td>${(r.tRangement||0) > 0 ? r.tRangement.toFixed(2) : '—'}</td>
             <td><strong>${r.total.toFixed(2)}</strong></td>
@@ -1403,6 +1472,7 @@ function toRow(r) {
         'N° Affaire':            r.affaire||'',
         'N° OF':                 r.of||'',
         'Référence':             r.ref,
+        'Direction':             r.direction === 'depart' ? 'Départ ST' : r.direction === 'retour' ? 'Retour ST' : '',
         'Type de pièce':         TYPE_LABELS[r.type]||r.type,
         'Pièce N°':              Number(r.pieceNumber),
         'Taille lot':            Number(r.qt),
@@ -1410,6 +1480,7 @@ function toRow(r) {
         'Échantillon réel':      Number(r.echReel ?? r.ech ?? 0),
         'Statut':                r.statut || 'Complet',
         'Tps dossier (min)':     r.tDossier > 0 ? Number(r.tDossier.toFixed(2)) : 0,
+        'Tps déballage (min)':   (r.tDeballage||0) > 0 ? Number((r.tDeballage).toFixed(2)) : 0,
         'Tps ctrl pièce (min)':  Number(r.tCtrl.toFixed(2)),
         'Tps rangement (min)':   Number((r.tRangement||0).toFixed(2)),
         'Total (min)':           Number(r.total.toFixed(2)),
