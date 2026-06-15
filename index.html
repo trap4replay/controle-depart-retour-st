@@ -1251,12 +1251,18 @@ function renderStats() {
             <td><strong>${fmt(of.totalOF)}</strong></td>
         </tr>`;
     });
+    const nbOf = ofList.length;
+    const avgQt = ofList.reduce((s,of)=>s+of.qt,0) / nbOf;
+    const avgDossOF = totDoss / nbOf;
+    const avgRangOF = totRang / nbOf;
+    const avgCtrlPieceGlobal = ofList.reduce((s,of)=>s+of.avgCtrlPiece,0) / nbOf;
+    const avgCtrlLotEstime = avgCtrlPieceGlobal * avgQt;
     html += `<tr class="total-row">
-        <td colspan="6">TOTAL</td>
-        <td>${fmtH(totDoss)}</td>
-        <td>${fmtH(totCtrlLot)}</td>
-        <td>${fmtH(totRang)}</td>
-        <td>${fmtH(totDoss+totCtrlLot+totRang)}</td>
+        <td colspan="6">MOYENNE</td>
+        <td>${fmt(avgDossOF)}</td>
+        <td>${fmt(avgCtrlLotEstime)} <span style="font-size:10px;color:#bbb;">(${fmt(avgCtrlPieceGlobal)}×${Math.round(avgQt)})</span></td>
+        <td>${fmt(avgRangOF)}</td>
+        <td>${fmt(avgDossOF+avgCtrlLotEstime+avgRangOF)}</td>
     </tr>`;
     html += `</tbody></table></div>`;
 
@@ -1283,14 +1289,14 @@ function renderStats() {
     });
     const avgDoss = totDoss / ofList.length;
     html += `<tr class="total-row">
-        <td colspan="4">TOTAL / MOYENNE</td>
-        <td>${fmtH(totDoss)} &nbsp;|&nbsp; moy. ${fmt(avgDoss)}/OF</td>
+        <td colspan="4">MOYENNE</td>
+        <td>${fmt(avgDoss)}</td>
     </tr>`;
     html += `</tbody></table></div>`;
 
     // ── 4. TEMPS PAR PIÈCE (ctrl unitaire, basé sur l'échantillon mesuré) ──
     html += `<div class="card"><h2>🔍 Temps de contrôle par pièce</h2>
-    <p style="font-size:12px;color:#888;margin-bottom:14px;">Temps de contrôle unitaire mesuré sur l'échantillon — la moyenne est extrapolée à la taille du lot entier</p>
+    <p style="font-size:12px;color:#888;margin-bottom:14px;">Temps de contrôle unitaire mesuré sur l'échantillon — extrapolé à la taille moyenne du lot pour ce type</p>
     <table class="stats-tbl">
         <thead><tr>
             <th>Type de pièce</th>
@@ -1298,7 +1304,7 @@ function renderStats() {
             <th>Tps moyen / pièce</th>
             <th>Tps min</th>
             <th>Tps max</th>
-            <th>Total ctrl cumulé (éch.)</th>
+            <th>Tps estimé / lot</th>
         </tr></thead>
         <tbody>`;
     types.forEach(type => {
@@ -1307,25 +1313,26 @@ function renderStats() {
         const avg = rows.reduce((s,r)=>s+r.tCtrl,0)/rows.length;
         const mn  = Math.min(...rows.map(r=>r.tCtrl));
         const mx  = Math.max(...rows.map(r=>r.tCtrl));
-        const tot = rows.reduce((s,r)=>s+r.tCtrl,0);
+        const ofsType = ofList.filter(of=>of.type===type);
+        const avgQtType = ofsType.length ? ofsType.reduce((s,of)=>s+of.qt,0)/ofsType.length : 0;
         html += `<tr>
             <td><span class="badge ${TYPE_BADGES[type]}">${TYPE_LABELS[type]}</span></td>
             <td>${rows.length}</td>
             <td><strong>${fmt(avg)}</strong></td>
             <td>${fmt(mn)}</td>
             <td>${fmt(mx)}</td>
-            <td>${fmtH(tot)}</td>
+            <td>${fmt(avg*avgQtType)} <span style="font-size:10px;color:#aaa;">(${fmt(avg)}×${Math.round(avgQtType)})</span></td>
         </tr>`;
     });
     const gAvg = data.reduce((s,r)=>s+r.tCtrl,0)/data.length;
-    const gTot = data.reduce((s,r)=>s+r.tCtrl,0);
+    const gAvgQt = ofList.length ? ofList.reduce((s,of)=>s+of.qt,0)/ofList.length : 0;
     html += `<tr class="total-row">
-        <td>TOTAL / GLOBAL</td>
+        <td>MOYENNE / GLOBAL</td>
         <td>${data.length}</td>
         <td>${fmt(gAvg)}</td>
         <td>${fmt(Math.min(...data.map(r=>r.tCtrl)))}</td>
         <td>${fmt(Math.max(...data.map(r=>r.tCtrl)))}</td>
-        <td>${fmtH(gTot)}</td>
+        <td>${fmt(gAvg*gAvgQt)} <span style="font-size:10px;color:#bbb;">(${fmt(gAvg)}×${Math.round(gAvgQt)})</span></td>
     </tr>`;
     html += `</tbody></table></div>`;
 
@@ -1354,8 +1361,8 @@ function renderStats() {
     });
     const avgRang = totRang / ofList.length;
     html += `<tr class="total-row">
-        <td colspan="5">TOTAL / MOYENNE</td>
-        <td>${fmtH(totRang)} &nbsp;|&nbsp; moy. ${fmt(avgRang)}/OF</td>
+        <td colspan="5">MOYENNE</td>
+        <td>${fmt(avgRang)}</td>
     </tr>`;
     html += `</tbody></table></div>`;
 
