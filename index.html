@@ -1362,11 +1362,17 @@ function renderStats() {
     // ── 6. TEMPS MOYENS PAR OPÉRATEUR ──
     const opMap = {};
     data.forEach(r => {
-        if (!opMap[r.operateur]) opMap[r.operateur] = { pieces:0, tCtrlTotal:0, tDossier:0, tRangement:0 };
+        if (!opMap[r.operateur]) opMap[r.operateur] = { pieces:0, tCtrlTotal:0, tDossier:0, tRangement:0, ofsDoss:new Set(), ofsRang:new Set() };
         opMap[r.operateur].pieces++;
         opMap[r.operateur].tCtrlTotal += r.tCtrl;
-        opMap[r.operateur].tDossier   += (r.tDossier||0);
-        opMap[r.operateur].tRangement += (r.tRangement||0);
+        if ((r.tDossier||0) > 0) {
+            opMap[r.operateur].tDossier += r.tDossier;
+            opMap[r.operateur].ofsDoss.add(r.of);
+        }
+        if ((r.tRangement||0) > 0) {
+            opMap[r.operateur].tRangement += r.tRangement;
+            opMap[r.operateur].ofsRang.add(r.of);
+        }
     });
     const opList = Object.entries(opMap).sort((a,b)=>b[1].pieces-a[1].pieces);
 
@@ -1376,17 +1382,19 @@ function renderStats() {
             <th>Opérateur</th>
             <th>Pièces mesurées</th>
             <th>Tps ctrl moyen / pièce</th>
-            <th>Total dossiers</th>
-            <th>Total rangement</th>
+            <th>Tps dossier moyen / OF</th>
+            <th>Tps rangement moyen / OF</th>
         </tr></thead>
         <tbody>`;
     opList.forEach(([op, v]) => {
+        const avgDoss = v.ofsDoss.size ? v.tDossier / v.ofsDoss.size : 0;
+        const avgRang = v.ofsRang.size ? v.tRangement / v.ofsRang.size : 0;
         html += `<tr>
             <td><strong>${op}</strong></td>
             <td>${v.pieces}</td>
             <td>${fmt(v.tCtrlTotal/v.pieces)}</td>
-            <td>${fmtH(v.tDossier)}</td>
-            <td>${fmtH(v.tRangement)}</td>
+            <td>${avgDoss > 0 ? fmt(avgDoss) : '—'}</td>
+            <td>${avgRang > 0 ? fmt(avgRang) : '—'}</td>
         </tr>`;
     });
     html += `</tbody></table></div>`;
