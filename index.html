@@ -503,9 +503,9 @@ tr:hover td { background: #f8f0f2; }
                     <thead>
                         <tr>
                             <th>Pièce</th>
-                            <th>📁 Dossier (min)</th>
-                            <th>🔍 Ctrl pièce (min)</th>
-                            <th>Total (min)</th>
+                            <th>📁 Dossier</th>
+                            <th>🔍 Ctrl pièce</th>
+                            <th>Total</th>
                             <th>Obs.</th>
                         </tr>
                     </thead>
@@ -597,11 +597,11 @@ tr:hover td { background: #f8f0f2; }
                         <th>Pièce N°</th>
                         <th>Taille lot</th>
                         <th>Échantillon</th>
-                        <th>Dossier (min)</th>
-                        <th>Déballage (min)</th>
-                        <th>Ctrl pièce (min)</th>
-                        <th>Rangement (min)</th>
-                        <th>Total (min)</th>
+                        <th>Dossier</th>
+                        <th>Déballage</th>
+                        <th>Ctrl pièce</th>
+                        <th>Rangement</th>
+                        <th>Total</th>
                         <th>Obs.</th>
                         <th>Statut</th>
                         <th></th>
@@ -875,9 +875,9 @@ function renderLiveTable() {
     piecesData.forEach((p) => {
         rows += `<tr>
             <td><strong>#${p.pieceNumber}</strong></td>
-            <td>${p.tDossier > 0 ? p.tDossier.toFixed(2)+' min' : '<span style="color:#ccc">—</span>'}</td>
-            <td>${p.tCtrl.toFixed(2)} min</td>
-            <td><strong>${p.total.toFixed(2)} min</strong></td>
+            <td>${p.tDossier > 0 ? fmt(p.tDossier) : '<span style="color:#ccc">—</span>'}</td>
+            <td>${fmt(p.tCtrl)}</td>
+            <td><strong>${fmt(p.total)}</strong></td>
             <td>${p.obs||'—'}</td>
         </tr>`;
     });
@@ -895,15 +895,10 @@ function renderLiveTable() {
 // ═══════════════════════════════════════════════
 function validateEarly() {
     if (!currentLot) return;
-    if (!piecesData.length) { alert("⚠️ Aucune pièce n'a encore été enregistrée pour ce lot."); return; }
-    if (piecesData.length >= currentLot.ech) { goToRangement(); return; }
-    const ok = confirm(
-        `Valider l'OF maintenant avec seulement ${piecesData.length} / ${currentLot.ech} pièces ?\n\n` +
-        `Le contrôle sera considéré comme INTERROMPU et l'échantillon sera marqué INCOMPLET dans les données.`
-    );
-    if (!ok) return;
-    if (CS['ctrl']?.running)    stopC('ctrl');
-    if (CS['dossier']?.running) stopC('dossier');
+    if (!piecesData.length) { alert("⚠️ Enregistrez au moins une pièce avant de valider."); return; }
+    if (CS['ctrl']?.running)     stopC('ctrl');
+    if (CS['dossier']?.running)  stopC('dossier');
+    if (CS['deballage']?.running) stopC('deballage');
     goToRangement();
 }
 
@@ -912,11 +907,9 @@ function validateEarly() {
 // ═══════════════════════════════════════════════
 function goToRangement() {
     initC('rangement');
-    const complet = piecesData.length >= currentLot.ech;
     g('rangementBanner').innerHTML = `
         <h3>📦 ${currentLot.ref} — ${TYPE_LABELS[currentLot.type]}</h3>
-        <p>OF ${currentLot.of} | ${piecesData.length} / ${currentLot.ech} pièces mesurées
-        ${complet ? ' — ✅ Échantillon complet' : ' — ⚠️ Échantillon INCOMPLET (validation anticipée, contrôle interrompu)'}</p>
+        <p>OF ${currentLot.of} | ${piecesData.length} / ${currentLot.ech} pièces mesurées</p>
     `;
     g('saisieSection').classList.add('hidden');
     g('rangementSection').classList.remove('hidden');
@@ -925,22 +918,13 @@ function goToRangement() {
 function finishLot() {
     if (CS['rangement']?.running) stopC('rangement');
     const tRangement = getC('rangement');
-    const echReel = piecesData.length;
-    const complet = echReel >= currentLot.ech;
     const last = piecesData[piecesData.length - 1];
     last.tRangement = tRangement;
     last.total += tRangement;
-    piecesData.forEach(p => {
-        p.echReel = echReel;
-        p.statut  = complet ? 'Complet' : 'Incomplet';
-    });
+    piecesData.forEach(p => { p.echReel = piecesData.length; });
     save();
     renderTable(); renderStats();
-    if (complet) {
-        alert(`✅ Lot terminé ! ${echReel} / ${currentLot.ech} pièces enregistrées.`);
-    } else {
-        alert(`⚠️ OF validé avec un échantillon partiel : ${echReel} / ${currentLot.ech} pièces.\nLot marqué comme INCOMPLET.`);
-    }
+    alert(`✅ OF enregistré — ${piecesData.length} pièce(s) sur ${currentLot.ech} mesurées.`);
     resetAll();
 }
 
@@ -1019,11 +1003,11 @@ function renderTable() {
             <td>#${r.pieceNumber}</td>
             <td>${r.qt}</td>
             <td>${r.ech||'-'}</td>
-            <td>${r.tDossier > 0 ? r.tDossier.toFixed(2) : '—'}</td>
-            <td>${(r.tDeballage||0) > 0 ? r.tDeballage.toFixed(2) : '—'}</td>
-            <td>${r.tCtrl.toFixed(2)}</td>
-            <td>${(r.tRangement||0) > 0 ? r.tRangement.toFixed(2) : '—'}</td>
-            <td><strong>${r.total.toFixed(2)}</strong></td>
+            <td>${r.tDossier > 0 ? fmt(r.tDossier) : '—'}</td>
+            <td>${(r.tDeballage||0) > 0 ? fmt(r.tDeballage) : '—'}</td>
+            <td>${fmt(r.tCtrl)}</td>
+            <td>${(r.tRangement||0) > 0 ? fmt(r.tRangement) : '—'}</td>
+            <td><strong>${fmt(r.total)}</strong></td>
             <td>${r.obs||'—'}</td>
             <td>${statutBadge}</td>
             <td><button class="btn btn-danger btn-sm" onclick="deleteRow(${data.indexOf(r)})">🗑️</button></td>`;
@@ -1144,6 +1128,30 @@ function importExcel(input) {
 }
 
 // ═══════════════════════════════════════════════
+// FORMAT TEMPS LISIBLE — ex: 9.5 → "9 min 30 s"
+// ═══════════════════════════════════════════════
+function fmt(mins) {
+    if (!mins || mins <= 0) return '—';
+    const totalSec = Math.round(mins * 60);
+    const h = Math.floor(totalSec / 3600);
+    const m = Math.floor((totalSec % 3600) / 60);
+    const s = totalSec % 60;
+    if (h > 0) return `${h}h ${m}min ${s > 0 ? s+'s' : ''}`.trim();
+    if (m > 0 && s > 0) return `${m} min ${s} s`;
+    if (m > 0) return `${m} min`;
+    return `${s} s`;
+}
+function fmtH(mins) {
+    // Pour les grandes valeurs : affiche "2h 15min" ou "45 min"
+    if (!mins || mins <= 0) return '—';
+    const h = Math.floor(mins / 60);
+    const m = Math.round(mins % 60);
+    if (h > 0 && m > 0) return `${h}h ${m} min`;
+    if (h > 0) return `${h}h`;
+    return `${m} min`;
+}
+
+// ═══════════════════════════════════════════════
 // STATS ENRICHIES
 // ═══════════════════════════════════════════════
 function renderStats() {
@@ -1201,14 +1209,17 @@ function renderStats() {
         <div class="stats-row">
             <div class="stat-box"><h4>Pièces mesurées</h4><div class="val">${totalPiecesEch}</div></div>
             <div class="stat-box amber"><h4>Lots (OF)</h4><div class="val">${lots}</div></div>
-            <div class="stat-box teal"><h4>Tps ctrl moyen / pièce</h4><div class="val-sm">${avgCtrlPiece.toFixed(2)} min</div></div>
-            <div class="stat-box green"><h4>Tps moyen global / OF</h4><div class="val-sm">${avgTotalOF.toFixed(2)} min</div></div>
-            <div class="stat-box purple"><h4>Total dossiers</h4><div class="val-sm">${totalDossier.toFixed(1)} min</div></div>
-            <div class="stat-box amber"><h4>Total rangement</h4><div class="val-sm">${totalRangement.toFixed(1)} min</div></div>
-            <div class="stat-box red"><h4>Lots incomplets</h4><div class="val">${lotsIncomplets}</div></div>
+            <div class="stat-box teal"><h4>Tps ctrl moyen / pièce</h4><div class="val-sm">${fmt(avgCtrlPiece)}</div></div>
+            <div class="stat-box green"><h4>Tps moyen global / OF</h4><div class="val-sm">${fmt(avgTotalOF)}</div></div>
+            <div class="stat-box purple"><h4>Total dossiers</h4><div class="val-sm">${fmtH(totalDossier)}</div></div>
+            <div class="stat-box amber"><h4>Total rangement</h4><div class="val-sm">${fmtH(totalRangement)}</div></div>
         </div>
         <p style="font-size:11px;color:#999;margin-top:8px;">* Les temps ctrl sont estimés sur la taille du lot entier (moyenne échantillon × qt lot)</p>
     </div>`;
+
+    const totDoss    = ofList.reduce((s,o)=>s+o.tDossier,0);
+    const totCtrlLot = ofList.reduce((s,o)=>s+o.tCtrlLot,0);
+    const totRang    = ofList.reduce((s,o)=>s+o.tRangement,0);
 
     // ── 2. TEMPS PAR OF ──
     html += `<div class="card"><h2>📦 Temps par OF</h2>
@@ -1220,10 +1231,10 @@ function renderStats() {
             <th>Type</th>
             <th>Qt lot</th>
             <th>Éch. mesuré</th>
-            <th>Tps dossier (min)</th>
-            <th>Tps ctrl estimé lot (min)</th>
-            <th>Tps rangement (min)</th>
-            <th>Total OF estimé (min)</th>
+            <th>Dossier</th>
+            <th>Ctrl estimé lot</th>
+            <th>Rangement</th>
+            <th>Total OF estimé</th>
         </tr></thead>
         <tbody>`;
     ofList.forEach(of => {
@@ -1234,21 +1245,18 @@ function renderStats() {
             <td><span class="badge ${TYPE_BADGES[of.type]||''}">${TYPE_LABELS[of.type]||of.type}</span></td>
             <td>${of.qt}</td>
             <td>${of.echPieces}</td>
-            <td>${of.tDossier.toFixed(2)}</td>
-            <td>${of.tCtrlLot.toFixed(2)} <span style="font-size:10px;color:#aaa;">(${of.avgCtrlPiece.toFixed(2)}×${of.qt})</span></td>
-            <td>${of.tRangement.toFixed(2)}</td>
-            <td><strong>${of.totalOF.toFixed(2)}</strong></td>
+            <td>${fmt(of.tDossier)}</td>
+            <td>${fmt(of.tCtrlLot)} <span style="font-size:10px;color:#aaa;">(${fmt(of.avgCtrlPiece)}×${of.qt})</span></td>
+            <td>${fmt(of.tRangement)}</td>
+            <td><strong>${fmt(of.totalOF)}</strong></td>
         </tr>`;
     });
-    const totDoss = ofList.reduce((s,o)=>s+o.tDossier,0);
-    const totCtrlLot = ofList.reduce((s,o)=>s+o.tCtrlLot,0);
-    const totRang = ofList.reduce((s,o)=>s+o.tRangement,0);
     html += `<tr class="total-row">
         <td colspan="6">TOTAL</td>
-        <td>${totDoss.toFixed(2)}</td>
-        <td>${totCtrlLot.toFixed(2)}</td>
-        <td>${totRang.toFixed(2)}</td>
-        <td>${(totDoss+totCtrlLot+totRang).toFixed(2)}</td>
+        <td>${fmtH(totDoss)}</td>
+        <td>${fmtH(totCtrlLot)}</td>
+        <td>${fmtH(totRang)}</td>
+        <td>${fmtH(totDoss+totCtrlLot+totRang)}</td>
     </tr>`;
     html += `</tbody></table></div>`;
 
@@ -1261,7 +1269,7 @@ function renderStats() {
             <th>Affaire</th>
             <th>Réf.</th>
             <th>Type</th>
-            <th>Tps dossier (min)</th>
+            <th>Tps dossier</th>
         </tr></thead>
         <tbody>`;
     ofList.forEach(of => {
@@ -1270,13 +1278,13 @@ function renderStats() {
             <td>${of.affaire||'—'}</td>
             <td>${of.ref}</td>
             <td><span class="badge ${TYPE_BADGES[of.type]||''}">${TYPE_LABELS[of.type]||of.type}</span></td>
-            <td><strong>${of.tDossier.toFixed(2)}</strong></td>
+            <td><strong>${fmt(of.tDossier)}</strong></td>
         </tr>`;
     });
     const avgDoss = totDoss / ofList.length;
     html += `<tr class="total-row">
         <td colspan="4">TOTAL / MOYENNE</td>
-        <td>${totDoss.toFixed(2)} min &nbsp;|&nbsp; moy. ${avgDoss.toFixed(2)} min/OF</td>
+        <td>${fmtH(totDoss)} &nbsp;|&nbsp; moy. ${fmt(avgDoss)}/OF</td>
     </tr>`;
     html += `</tbody></table></div>`;
 
@@ -1303,10 +1311,10 @@ function renderStats() {
         html += `<tr>
             <td><span class="badge ${TYPE_BADGES[type]}">${TYPE_LABELS[type]}</span></td>
             <td>${rows.length}</td>
-            <td><strong>${avg.toFixed(2)} min</strong></td>
-            <td>${mn.toFixed(2)} min</td>
-            <td>${mx.toFixed(2)} min</td>
-            <td>${(tot/60).toFixed(2)} h</td>
+            <td><strong>${fmt(avg)}</strong></td>
+            <td>${fmt(mn)}</td>
+            <td>${fmt(mx)}</td>
+            <td>${fmtH(tot)}</td>
         </tr>`;
     });
     const gAvg = data.reduce((s,r)=>s+r.tCtrl,0)/data.length;
@@ -1314,10 +1322,10 @@ function renderStats() {
     html += `<tr class="total-row">
         <td>TOTAL / GLOBAL</td>
         <td>${data.length}</td>
-        <td>${gAvg.toFixed(2)} min</td>
-        <td>${Math.min(...data.map(r=>r.tCtrl)).toFixed(2)} min</td>
-        <td>${Math.max(...data.map(r=>r.tCtrl)).toFixed(2)} min</td>
-        <td>${(gTot/60).toFixed(2)} h</td>
+        <td>${fmt(gAvg)}</td>
+        <td>${fmt(Math.min(...data.map(r=>r.tCtrl)))}</td>
+        <td>${fmt(Math.max(...data.map(r=>r.tCtrl)))}</td>
+        <td>${fmtH(gTot)}</td>
     </tr>`;
     html += `</tbody></table></div>`;
 
@@ -1331,7 +1339,7 @@ function renderStats() {
             <th>Réf.</th>
             <th>Type</th>
             <th>Qt lot</th>
-            <th>Tps rangement (min)</th>
+            <th>Tps rangement</th>
         </tr></thead>
         <tbody>`;
     ofList.forEach(of => {
@@ -1341,13 +1349,13 @@ function renderStats() {
             <td>${of.ref}</td>
             <td><span class="badge ${TYPE_BADGES[of.type]||''}">${TYPE_LABELS[of.type]||of.type}</span></td>
             <td>${of.qt}</td>
-            <td><strong>${of.tRangement.toFixed(2)}</strong></td>
+            <td><strong>${fmt(of.tRangement)}</strong></td>
         </tr>`;
     });
     const avgRang = totRang / ofList.length;
     html += `<tr class="total-row">
         <td colspan="5">TOTAL / MOYENNE</td>
-        <td>${totRang.toFixed(2)} min &nbsp;|&nbsp; moy. ${avgRang.toFixed(2)} min/OF</td>
+        <td>${fmtH(totRang)} &nbsp;|&nbsp; moy. ${fmt(avgRang)}/OF</td>
     </tr>`;
     html += `</tbody></table></div>`;
 
@@ -1368,17 +1376,17 @@ function renderStats() {
             <th>Opérateur</th>
             <th>Pièces mesurées</th>
             <th>Tps ctrl moyen / pièce</th>
-            <th>Total dossiers (min)</th>
-            <th>Total rangement (min)</th>
+            <th>Total dossiers</th>
+            <th>Total rangement</th>
         </tr></thead>
         <tbody>`;
     opList.forEach(([op, v]) => {
         html += `<tr>
             <td><strong>${op}</strong></td>
             <td>${v.pieces}</td>
-            <td>${(v.tCtrlTotal/v.pieces).toFixed(2)} min</td>
-            <td>${v.tDossier.toFixed(2)}</td>
-            <td>${v.tRangement.toFixed(2)}</td>
+            <td>${fmt(v.tCtrlTotal/v.pieces)}</td>
+            <td>${fmtH(v.tDossier)}</td>
+            <td>${fmtH(v.tRangement)}</td>
         </tr>`;
     });
     html += `</tbody></table></div>`;
