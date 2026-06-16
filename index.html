@@ -208,6 +208,7 @@ tr:hover td { background: #f8f0f2; }
 .badge-grainage { background: #e6fff0; color: #007a2e; }
 .badge-petite   { background: #fff6e6; color: #aa5500; }
 .badge-deballage{ background: #fff0e6; color: #aa2200; }
+.badge-emballage{ background: #e6f7ff; color: #005b99; }
 .badge-complet   { background: #e6fff0; color: #007a2e; border: 1px solid #27ae60; }
 .badge-incomplet { background: #ffe9ec; color: #c0143a; border: 1px solid #e94560; }
 
@@ -419,6 +420,10 @@ tr:hover td { background: #f8f0f2; }
                     <span class="type-icon">📦</span>
                     <span class="type-name">Déballage</span>
                 </div>
+                <div class="type-card" id="type-emballage" onclick="selectType('emballage')">
+                    <span class="type-icon">📫</span>
+                    <span class="type-name">Emballage</span>
+                </div>
             </div>
             <input type="hidden" id="lotType">
 
@@ -483,6 +488,22 @@ tr:hover td { background: #f8f0f2; }
                 </div>
             </div>
 
+            <!-- TEMPS EMBALLAGE (toutes les pièces) -->
+            <div class="chrono-zone" id="emballageZone">
+                <div class="chrono-label">📫 Temps d'emballage <span style="font-weight:400; color:#bbb;">(chaque pièce)</span></div>
+                <div class="chrono-row">
+                    <span class="chrono-display" id="cd_emballage">00:00</span>
+                    <button type="button" class="btn-c start" id="cs_emballage" onclick="startC('emballage')">▶ Démarrer</button>
+                    <button type="button" class="btn-c pause" id="cp_emballage" onclick="pauseC('emballage')" style="display:none">⏸ Pause</button>
+                    <button type="button" class="btn-c stop"  id="ck_emballage" onclick="stopC('emballage')"  style="display:none">⏹ Arrêter</button>
+                    <button type="button" class="btn-c reset" onclick="resetC('emballage')">↺</button>
+                </div>
+                <div class="manual-input">
+                    <input type="number" id="ci_emballage" step="0.01" min="0" placeholder="0.00" oninput="manualC('emballage')">
+                    <span>min (saisie manuelle)</span>
+                </div>
+            </div>
+
             <div class="fgroup" style="margin-bottom:16px;">
                 <label>Observations (optionnel)</label>
                 <textarea id="pieceObs" rows="2" placeholder="Défaut constaté, remarque..."></textarea>
@@ -506,6 +527,7 @@ tr:hover td { background: #f8f0f2; }
                             <th>📁 Dossier</th>
                             <th>📦 Déballage</th>
                             <th>🔍 Ctrl pièce</th>
+                            <th>📫 Emballage</th>
                             <th>Total</th>
                             <th>Obs.</th>
                         </tr>
@@ -601,6 +623,7 @@ tr:hover td { background: #f8f0f2; }
                         <th>Dossier</th>
                         <th>Déballage</th>
                         <th>Ctrl pièce</th>
+                        <th>Emballage</th>
                         <th>Rangement</th>
                         <th>Total</th>
                         <th>Obs.</th>
@@ -637,10 +660,10 @@ let deballageSaved = false;
 let selectedType = '';
 let selectedDir  = '';
 
-const TYPE_LABELS = { corniere:'Cornières', panier:'Paniers', grainage:'Pièces grainage', petite:'Petites pièces', deballage:'Déballage' };
+const TYPE_LABELS = { corniere:'Cornières', panier:'Paniers', grainage:'Pièces grainage', petite:'Petites pièces', deballage:'Déballage', emballage:'Emballage' };
 const TYPE_BADGES = {
     corniere:'badge-corniere', panier:'badge-panier',
-    grainage:'badge-grainage', petite:'badge-petite', deballage:'badge-deballage'
+    grainage:'badge-grainage', petite:'badge-petite', deballage:'badge-deballage', emballage:'badge-emballage'
 };
 
 // ═══════════════════════════════════════════════
@@ -676,7 +699,7 @@ function goTab(id) {
 function selectType(t) {
     selectedType = t;
     document.getElementById('lotType').value = t;
-    ['corniere','panier','grainage','petite','deballage'].forEach(k => {
+    ['corniere','panier','grainage','petite','deballage','emballage'].forEach(k => {
         document.getElementById('type-'+k).className = 'type-card' + (k===t ? ' selected' : '');
     });
 }
@@ -786,7 +809,7 @@ document.getElementById('lotForm').addEventListener('submit', function(e) {
     dossierSaved   = false;
     deballageSaved = false;
 
-    initC('dossier'); initC('deballage'); initC('ctrl'); initC('rangement');
+    initC('dossier'); initC('deballage'); initC('emballage'); initC('ctrl'); initC('rangement');
 
     const dirLabel = selectedDir === 'depart' ? '📤 Départ ST' : '📥 Retour ST';
     g('lotBanner').innerHTML = `
@@ -808,9 +831,11 @@ document.getElementById('pieceForm').addEventListener('submit', function(e) {
     if (CS['ctrl']?.running)     stopC('ctrl');
     if (CS['dossier']?.running)  stopC('dossier');
     if (CS['deballage']?.running) stopC('deballage');
+    if (CS['emballage']?.running) stopC('emballage');
 
     const tDossier   = getC('dossier');
-    const tDeballage = getC('deballage');   // saisi sur chaque pièce
+    const tDeballage = getC('deballage');
+    const tEmballage = getC('emballage');
     const tCtrl      = getC('ctrl');
 
     if (tCtrl <= 0) {
@@ -826,6 +851,8 @@ document.getElementById('pieceForm').addEventListener('submit', function(e) {
 
     // Déballage : toujours pris en compte
     const tDeballageFinal = tDeballage;
+    // Emballage : toujours pris en compte
+    const tEmballageFinal = tEmballage;
 
     const entry = {
         date:        currentLot.date,
@@ -840,9 +867,10 @@ document.getElementById('pieceForm').addEventListener('submit', function(e) {
         pieceNumber: currentPiece,
         tDossier:    tDossierFinal,
         tDeballage:  tDeballageFinal,
+        tEmballage:  tEmballageFinal,
         tCtrl:       tCtrl,
         tRangement:  0,
-        total:       tDossierFinal + tDeballageFinal + tCtrl,
+        total:       tDossierFinal + tDeballageFinal + tEmballageFinal + tCtrl,
         obs:         g('pieceObs').value.trim()
     };
     data.push(entry);
@@ -854,7 +882,8 @@ document.getElementById('pieceForm').addEventListener('submit', function(e) {
         currentPiece++;
         updatePieceUI();
         resetC('ctrl');
-        resetC('deballage');   // déballage reset à chaque pièce
+        resetC('deballage');
+        resetC('emballage');   // emballage reset à chaque pièce
         g('pieceObs').value = '';
         // Dossier : visible seulement sur 1ère et dernière pièce
         updateDossierVisibility();
@@ -902,6 +931,7 @@ function renderLiveTable() {
             <td>${p.tDossier > 0 ? fmt(p.tDossier) : '<span style="color:#ccc">—</span>'}</td>
             <td>${(p.tDeballage||0) > 0 ? fmt(p.tDeballage) : '<span style="color:#ccc">—</span>'}</td>
             <td>${fmt(p.tCtrl)}</td>
+            <td>${(p.tEmballage||0) > 0 ? fmt(p.tEmballage) : '<span style="color:#ccc">—</span>'}</td>
             <td><strong>${fmt(p.total)}</strong></td>
             <td>${p.obs||'—'}</td>
         </tr>`;
@@ -924,6 +954,7 @@ function validateEarly() {
     if (CS['ctrl']?.running)      stopC('ctrl');
     if (CS['dossier']?.running)   stopC('dossier');
     if (CS['deballage']?.running) stopC('deballage');
+    if (CS['emballage']?.running) stopC('emballage');
     goToRangement();
 }
 
@@ -971,12 +1002,15 @@ function resetAll() {
     g('dossierZone').style.pointerEvents = '';
     g('deballageZone').style.opacity = '1';
     g('deballageZone').style.pointerEvents = '';
+    g('emballageZone').style.opacity = '1';
+    g('emballageZone').style.pointerEvents = '';
     g('liveTable').style.display = 'none';
     g('liveTbody').innerHTML = '';
     g('rangementSection').classList.add('hidden');
     resetC('rangement');
     resetC('dossier');
     resetC('deballage');
+    resetC('emballage');
     resetC('ctrl');
     g('lotSection').classList.remove('hidden');
     g('saisieSection').classList.add('hidden');
@@ -1034,6 +1068,7 @@ function renderTable() {
             <td>${r.tDossier > 0 ? fmt(r.tDossier) : '—'}</td>
             <td>${(r.tDeballage||0) > 0 ? fmt(r.tDeballage) : '—'}</td>
             <td>${fmt(r.tCtrl)}</td>
+            <td>${(r.tEmballage||0) > 0 ? fmt(r.tEmballage) : '—'}</td>
             <td>${(r.tRangement||0) > 0 ? fmt(r.tRangement) : '—'}</td>
             <td><strong>${fmt(r.total)}</strong></td>
             <td>${r.obs||'—'}</td>
@@ -1203,12 +1238,14 @@ function renderStats() {
         if (!ofMap[key]) ofMap[key] = {
             of: key, affaire: r.affaire, ref: r.ref, type: r.type,
             qt: r.qt || 0,
-            tDossier: 0, tRangement: 0,
-            echPieces: 0,   // nb de pièces dans l'échantillon mesuré
-            tCtrlEch: 0,    // somme ctrl sur l'échantillon
+            tDossier: 0, tRangement: 0, tDeballage: 0, tEmballage: 0,
+            echPieces: 0,
+            tCtrlEch: 0,
         };
         ofMap[key].tDossier   += (r.tDossier||0);
         ofMap[key].tRangement += (r.tRangement||0);
+        ofMap[key].tDeballage += (r.tDeballage||0);
+        ofMap[key].tEmballage += (r.tEmballage||0);
         ofMap[key].echPieces++;
         ofMap[key].tCtrlEch   += r.tCtrl;
         // On prend le qt du lot (peut évoluer si plusieurs lignes — on garde le max)
@@ -1218,8 +1255,8 @@ function renderStats() {
     // Pour chaque OF : tCtrlLot = moyenne ctrl par pièce × taille du lot
     Object.values(ofMap).forEach(of => {
         of.avgCtrlPiece = of.echPieces > 0 ? of.tCtrlEch / of.echPieces : 0;
-        of.tCtrlLot     = of.avgCtrlPiece * of.qt;  // estimation sur le lot complet
-        of.totalOF      = of.tDossier + of.tCtrlLot + of.tRangement;
+        of.tCtrlLot     = of.avgCtrlPiece * of.qt;
+        of.totalOF      = of.tDossier + of.tCtrlLot + of.tRangement + of.tDeballage + of.tEmballage;
     });
     const ofList = Object.values(ofMap).sort((a,b)=>a.of.localeCompare(b.of));
 
@@ -1229,6 +1266,8 @@ function renderStats() {
     const avgCtrlPiece   = data.reduce((s,r)=>s+r.tCtrl,0) / data.length;
     const totalDossier   = data.reduce((s,r)=>s+(r.tDossier||0),0);
     const totalRangement = data.reduce((s,r)=>s+(r.tRangement||0),0);
+    const totalDeballage = data.reduce((s,r)=>s+(r.tDeballage||0),0);
+    const totalEmballage = data.reduce((s,r)=>s+(r.tEmballage||0),0);
     const lotsIncomplets = new Set(data.filter(r=>r.statut==='Incomplet').map(r=>r.ref+'|'+r.of)).size;
     // Temps moyen global d'un OF (dossier + ctrl estimé sur lot + rangement)
     const avgTotalOF = ofList.reduce((s,o)=>s+o.totalOF,0) / ofList.length;
@@ -1241,6 +1280,8 @@ function renderStats() {
             <div class="stat-box green"><h4>Tps moyen global / OF</h4><div class="val-sm">${fmt(avgTotalOF)}</div></div>
             <div class="stat-box purple"><h4>Total dossiers</h4><div class="val-sm">${fmtH(totalDossier)}</div></div>
             <div class="stat-box amber"><h4>Total rangement</h4><div class="val-sm">${fmtH(totalRangement)}</div></div>
+            <div class="stat-box red"><h4>Total déballage</h4><div class="val-sm">${fmtH(totalDeballage)}</div></div>
+            <div class="stat-box teal"><h4>Total emballage</h4><div class="val-sm">${fmtH(totalEmballage)}</div></div>
         </div>
         <p style="font-size:11px;color:#999;margin-top:8px;">* Les temps ctrl sont estimés sur la taille du lot entier (moyenne échantillon × qt lot)</p>
     </div>`;
@@ -1248,9 +1289,12 @@ function renderStats() {
     const totDoss    = ofList.reduce((s,o)=>s+o.tDossier,0);
     const totCtrlLot = ofList.reduce((s,o)=>s+o.tCtrlLot,0);
     const totRang    = ofList.reduce((s,o)=>s+o.tRangement,0);
+    const totDebStat = ofList.reduce((s,o)=>s+o.tDeballage,0);
+    const totEmbStat = ofList.reduce((s,o)=>s+o.tEmballage,0);
 
-    // ── 2. TEMPS PAR OF ──
-    html += `<div class="card"><h2>📦 Temps par OF</h2>
+    // ── 2. DÉBALLAGE / EMBALLAGE PAR OF ──
+    html += `<div class="card"><h2>📦📫 Déballage / Emballage par OF</h2>
+    <p style="font-size:12px;color:#888;margin-bottom:14px;">Temps de déballage et d'emballage cumulés par OF</p>
     <table class="stats-tbl">
         <thead><tr>
             <th>N° OF</th>
@@ -1259,13 +1303,15 @@ function renderStats() {
             <th>Type</th>
             <th>Qt lot</th>
             <th>Éch. mesuré</th>
-            <th>Dossier</th>
-            <th>Ctrl estimé lot</th>
-            <th>Rangement</th>
-            <th>Total OF estimé</th>
+            <th>📦 Déballage total</th>
+            <th>📫 Emballage total</th>
+            <th>Moy. déballage / pièce</th>
+            <th>Moy. emballage / pièce</th>
         </tr></thead>
         <tbody>`;
     ofList.forEach(of => {
+        const avgDeb = of.echPieces > 0 ? of.tDeballage / of.echPieces : 0;
+        const avgEmb = of.echPieces > 0 ? of.tEmballage / of.echPieces : 0;
         html += `<tr>
             <td><strong>${of.of}</strong></td>
             <td>${of.affaire||'—'}</td>
@@ -1273,24 +1319,19 @@ function renderStats() {
             <td><span class="badge ${TYPE_BADGES[of.type]||''}">${TYPE_LABELS[of.type]||of.type}</span></td>
             <td>${of.qt}</td>
             <td>${of.echPieces}</td>
-            <td>${fmt(of.tDossier)}</td>
-            <td>${fmt(of.tCtrlLot)} <span style="font-size:10px;color:#aaa;">(${fmt(of.avgCtrlPiece)}×${of.qt})</span></td>
-            <td>${fmt(of.tRangement)}</td>
-            <td><strong>${fmt(of.totalOF)}</strong></td>
+            <td>${fmt(of.tDeballage)}</td>
+            <td>${fmt(of.tEmballage)}</td>
+            <td>${avgDeb > 0 ? fmt(avgDeb) : '—'}</td>
+            <td>${avgEmb > 0 ? fmt(avgEmb) : '—'}</td>
         </tr>`;
     });
-    const nbOf = ofList.length;
-    const avgQt = ofList.reduce((s,of)=>s+of.qt,0) / nbOf;
-    const avgDossOF = totDoss / nbOf;
-    const avgRangOF = totRang / nbOf;
-    const avgCtrlPieceGlobal = ofList.reduce((s,of)=>s+of.avgCtrlPiece,0) / nbOf;
-    const avgCtrlLotEstime = avgCtrlPieceGlobal * avgQt;
+    const nbOfDE = ofList.length;
     html += `<tr class="total-row">
-        <td colspan="6">MOYENNE</td>
-        <td>${fmt(avgDossOF)}</td>
-        <td>${fmt(avgCtrlLotEstime)} <span style="font-size:10px;color:#bbb;">(${fmt(avgCtrlPieceGlobal)}×${Math.round(avgQt)})</span></td>
-        <td>${fmt(avgRangOF)}</td>
-        <td>${fmt(avgDossOF+avgCtrlLotEstime+avgRangOF)}</td>
+        <td colspan="6">TOTAL / MOYENNE</td>
+        <td>${fmtH(totDebStat)}</td>
+        <td>${fmtH(totEmbStat)}</td>
+        <td>${fmt(totDebStat / data.length)}</td>
+        <td>${fmt(totEmbStat / data.length)}</td>
     </tr>`;
     html += `</tbody></table></div>`;
 
@@ -1486,23 +1527,27 @@ function exportExcel() {
     const ofMap2 = {};
     data.forEach(r => {
         const key = r.of||'—';
-        if (!ofMap2[key]) ofMap2[key] = { of:key, affaire:r.affaire, ref:r.ref, type:r.type, tDossier:0, tRangement:0, pieces:0, tCtrlTotal:0 };
+        if (!ofMap2[key]) ofMap2[key] = { of:key, affaire:r.affaire, ref:r.ref, type:r.type, tDossier:0, tRangement:0, tDeballage:0, tEmballage:0, pieces:0, tCtrlTotal:0 };
         ofMap2[key].tDossier   += (r.tDossier||0);
         ofMap2[key].tRangement += (r.tRangement||0);
+        ofMap2[key].tDeballage += (r.tDeballage||0);
+        ofMap2[key].tEmballage += (r.tEmballage||0);
         ofMap2[key].pieces++;
         ofMap2[key].tCtrlTotal += r.tCtrl;
     });
     Object.values(ofMap2).forEach(of => {
         ofStats.push({
-            'N° OF':                of.of,
-            'N° Affaire':           of.affaire,
-            'Référence':            of.ref,
-            'Type':                 TYPE_LABELS[of.type]||of.type,
-            'Pièces mesurées':      of.pieces,
-            'Tps dossier (min)':    +of.tDossier.toFixed(2),
-            'Tps ctrl total (min)': +of.tCtrlTotal.toFixed(2),
-            'Tps rangement (min)':  +of.tRangement.toFixed(2),
-            'Total OF (min)':       +(of.tDossier+of.tCtrlTotal+of.tRangement).toFixed(2),
+            'N° OF':                  of.of,
+            'N° Affaire':             of.affaire,
+            'Référence':              of.ref,
+            'Type':                   TYPE_LABELS[of.type]||of.type,
+            'Pièces mesurées':        of.pieces,
+            'Tps dossier (min)':      +of.tDossier.toFixed(2),
+            'Tps déballage (min)':    +of.tDeballage.toFixed(2),
+            'Tps emballage (min)':    +of.tEmballage.toFixed(2),
+            'Tps ctrl total (min)':   +of.tCtrlTotal.toFixed(2),
+            'Tps rangement (min)':    +of.tRangement.toFixed(2),
+            'Total OF (min)':         +(of.tDossier+of.tDeballage+of.tEmballage+of.tCtrlTotal+of.tRangement).toFixed(2),
         });
     });
 
@@ -1532,6 +1577,7 @@ function toRow(r) {
         'Statut':                r.statut || 'Complet',
         'Tps dossier (min)':     r.tDossier > 0 ? Number(r.tDossier.toFixed(2)) : 0,
         'Tps déballage (min)':   (r.tDeballage||0) > 0 ? Number((r.tDeballage).toFixed(2)) : 0,
+        'Tps emballage (min)':   (r.tEmballage||0) > 0 ? Number((r.tEmballage).toFixed(2)) : 0,
         'Tps ctrl pièce (min)':  Number(r.tCtrl.toFixed(2)),
         'Tps rangement (min)':   Number((r.tRangement||0).toFixed(2)),
         'Total (min)':           Number(r.total.toFixed(2)),
