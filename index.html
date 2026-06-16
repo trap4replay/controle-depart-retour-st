@@ -1254,6 +1254,10 @@ function renderStats() {
     const lotsIncomplets = new Set(data.filter(r=>r.statut==='Incomplet').map(r=>r.ref+'|'+r.of)).size;
     // Temps moyen global d'un OF (dossier + ctrl estimé sur lot + rangement)
     const avgTotalOF = ofList.reduce((s,o)=>s+o.totalOF,0) / ofList.length;
+    const avgDossierOF   = ofList.reduce((s,o)=>s+o.tDossier,0) / ofList.length;
+    const avgRangementOF = ofList.reduce((s,o)=>s+o.tRangement,0) / ofList.length;
+    const avgDeballageOF = ofList.reduce((s,o)=>s+o.tDeballage,0) / ofList.length;
+    const avgEmballageOF = ofList.reduce((s,o)=>s+o.tEmballage,0) / ofList.length;
 
     html += `<div class="card"><h2>📊 Vue globale</h2>
         <div class="stats-row">
@@ -1261,10 +1265,10 @@ function renderStats() {
             <div class="stat-box amber"><h4>Lots (OF)</h4><div class="val">${lots}</div></div>
             <div class="stat-box teal"><h4>Tps ctrl moyen / pièce</h4><div class="val-sm">${fmt(avgCtrlPiece)}</div></div>
             <div class="stat-box green"><h4>Tps moyen global / OF</h4><div class="val-sm">${fmt(avgTotalOF)}</div></div>
-            <div class="stat-box purple"><h4>Total dossiers</h4><div class="val-sm">${fmtH(totalDossier)}</div></div>
-            <div class="stat-box amber"><h4>Total rangement</h4><div class="val-sm">${fmtH(totalRangement)}</div></div>
-            <div class="stat-box red"><h4>Total déballage</h4><div class="val-sm">${fmtH(totalDeballage)}</div></div>
-            <div class="stat-box teal"><h4>Total emballage</h4><div class="val-sm">${fmtH(totalEmballage)}</div></div>
+            <div class="stat-box purple"><h4>Tps moyen dossier / OF</h4><div class="val-sm">${fmt(avgDossierOF)}</div></div>
+            <div class="stat-box amber"><h4>Tps moyen rangement / OF</h4><div class="val-sm">${fmt(avgRangementOF)}</div></div>
+            <div class="stat-box red"><h4>Tps moyen déballage / OF</h4><div class="val-sm">${fmt(avgDeballageOF)}</div></div>
+            <div class="stat-box teal"><h4>Tps moyen emballage / OF</h4><div class="val-sm">${fmt(avgEmballageOF)}</div></div>
         </div>
         <p style="font-size:11px;color:#999;margin-top:8px;">* Les temps ctrl sont estimés sur la taille du lot entier (moyenne échantillon × qt lot)</p>
     </div>`;
