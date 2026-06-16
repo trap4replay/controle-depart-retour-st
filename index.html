@@ -504,6 +504,22 @@ tr:hover td { background: #f8f0f2; }
                 </div>
             </div>
 
+            <!-- TEMPS RANGEMENT (disponible à chaque pièce) -->
+            <div class="chrono-zone" id="rangementZonePiece">
+                <div class="chrono-label">🧮 Temps de rangement / comptage <span style="font-weight:400; color:#bbb;">(optionnel — cumulé à chaque pièce si besoin)</span></div>
+                <div class="chrono-row">
+                    <span class="chrono-display" id="cd_rangement">00:00</span>
+                    <button type="button" class="btn-c start" id="cs_rangement" onclick="startC('rangement')">▶ Démarrer</button>
+                    <button type="button" class="btn-c pause" id="cp_rangement" onclick="pauseC('rangement')" style="display:none">⏸ Pause</button>
+                    <button type="button" class="btn-c stop"  id="ck_rangement" onclick="stopC('rangement')"  style="display:none">⏹ Arrêter</button>
+                    <button type="button" class="btn-c reset" onclick="resetC('rangement')">↺</button>
+                </div>
+                <div class="manual-input">
+                    <input type="number" id="ci_rangement" step="0.01" min="0" placeholder="0.00" oninput="manualC('rangement')">
+                    <span>min (saisie manuelle)</span>
+                </div>
+            </div>
+
             <div class="fgroup" style="margin-bottom:16px;">
                 <label>Observations (optionnel)</label>
                 <textarea id="pieceObs" rows="2" placeholder="Défaut constaté, remarque..."></textarea>
@@ -528,6 +544,7 @@ tr:hover td { background: #f8f0f2; }
                             <th>📦 Déballage</th>
                             <th>🔍 Ctrl pièce</th>
                             <th>📫 Emballage</th>
+                            <th>🧮 Rangement</th>
                             <th>Total</th>
                             <th>Obs.</th>
                         </tr>
@@ -538,30 +555,7 @@ tr:hover td { background: #f8f0f2; }
         </div>
     </div>
 
-    <!-- SECTION RANGEMENT / COMPTAGE FINAL -->
-    <div class="card hidden" id="rangementSection">
-        <h2>🧮 Rangement / comptage du lot</h2>
-        <div class="lot-banner" id="rangementBanner"></div>
-
-        <div class="chrono-zone">
-            <div class="chrono-label">🧮 Temps de rangement / comptage <span style="font-weight:400; color:#bbb;">(une fois par lot, en fin de contrôle)</span></div>
-            <div class="chrono-row">
-                <span class="chrono-display" id="cd_rangement">00:00</span>
-                <button type="button" class="btn-c start" id="cs_rangement" onclick="startC('rangement')">▶ Démarrer</button>
-                <button type="button" class="btn-c pause" id="cp_rangement" onclick="pauseC('rangement')" style="display:none">⏸ Pause</button>
-                <button type="button" class="btn-c stop"  id="ck_rangement" onclick="stopC('rangement')"  style="display:none">⏹ Arrêter</button>
-                <button type="button" class="btn-c reset" onclick="resetC('rangement')">↺</button>
-            </div>
-            <div class="manual-input">
-                <input type="number" id="ci_rangement" step="0.01" min="0" placeholder="0.00" oninput="manualC('rangement')">
-                <span>min (saisie manuelle)</span>
-            </div>
-        </div>
-
-        <div style="display:flex; gap:10px; flex-wrap:wrap;">
-            <button type="button" class="btn btn-main" onclick="finishLot()">✅ Terminer le lot</button>
-        </div>
-    </div>
+    <!-- SECTION RANGEMENT FINAL (supprimée — rangement saisi directement sur chaque pièce) -->
 </div>
 
 <!-- ══════════════════════════════════════════════ -->
@@ -833,10 +827,13 @@ document.getElementById('pieceForm').addEventListener('submit', function(e) {
     if (CS['deballage']?.running) stopC('deballage');
     if (CS['emballage']?.running) stopC('emballage');
 
+    if (CS['rangement']?.running) stopC('rangement');
+
     const tDossier   = getC('dossier');
     const tDeballage = getC('deballage');
     const tEmballage = getC('emballage');
     const tCtrl      = getC('ctrl');
+    const tRangement = getC('rangement');
 
     if (tCtrl <= 0) {
         alert('⚠️ Veuillez renseigner le temps de contrôle de la pièce.');
@@ -869,8 +866,8 @@ document.getElementById('pieceForm').addEventListener('submit', function(e) {
         tDeballage:  tDeballageFinal,
         tEmballage:  tEmballageFinal,
         tCtrl:       tCtrl,
-        tRangement:  0,
-        total:       tDossierFinal + tDeballageFinal + tEmballageFinal + tCtrl,
+        tRangement:  tRangement,
+        total:       tDossierFinal + tDeballageFinal + tEmballageFinal + tCtrl + tRangement,
         obs:         g('pieceObs').value.trim()
     };
     data.push(entry);
@@ -883,12 +880,13 @@ document.getElementById('pieceForm').addEventListener('submit', function(e) {
         updatePieceUI();
         resetC('ctrl');
         resetC('deballage');
-        resetC('emballage');   // emballage reset à chaque pièce
+        resetC('emballage');
+        resetC('rangement');   // rangement reset à chaque pièce
         g('pieceObs').value = '';
         // Dossier : visible seulement sur 1ère et dernière pièce
         updateDossierVisibility();
     } else {
-        goToRangement();
+        finishLot();
     }
 });
 
@@ -908,12 +906,11 @@ function updateDossierVisibility() {
         dz.style.opacity = '1';
         dz.style.pointerEvents = '';
         dl.innerHTML = '📁 Temps de préparation du dossier de fab <span style="font-weight:400; color:#bbb;">(1ère pièce : ouverture OF)</span>';
-        resetC('dossier');
     } else if (isLast) {
         dz.style.opacity = '1';
         dz.style.pointerEvents = '';
         dl.innerHTML = '📁 Temps de clôture du dossier de fab <span style="font-weight:400; color:#bbb;">(dernière pièce : remplissage OF)</span>';
-        resetC('dossier');
+        resetC('dossier');   // reset pour saisir le temps de clôture
     } else {
         dz.style.opacity = '0.3';
         dz.style.pointerEvents = 'none';
@@ -932,6 +929,7 @@ function renderLiveTable() {
             <td>${(p.tDeballage||0) > 0 ? fmt(p.tDeballage) : '<span style="color:#ccc">—</span>'}</td>
             <td>${fmt(p.tCtrl)}</td>
             <td>${(p.tEmballage||0) > 0 ? fmt(p.tEmballage) : '<span style="color:#ccc">—</span>'}</td>
+            <td>${(p.tRangement||0) > 0 ? fmt(p.tRangement) : '<span style="color:#ccc">—</span>'}</td>
             <td><strong>${fmt(p.total)}</strong></td>
             <td>${p.obs||'—'}</td>
         </tr>`;
@@ -955,28 +953,14 @@ function validateEarly() {
     if (CS['dossier']?.running)   stopC('dossier');
     if (CS['deballage']?.running) stopC('deballage');
     if (CS['emballage']?.running) stopC('emballage');
-    goToRangement();
+    if (CS['rangement']?.running) stopC('rangement');
+    finishLot();
 }
 
 // ═══════════════════════════════════════════════
 // ÉTAPE RANGEMENT
 // ═══════════════════════════════════════════════
-function goToRangement() {
-    initC('rangement');
-    g('rangementBanner').innerHTML = `
-        <h3>📦 ${currentLot.ref} — ${TYPE_LABELS[currentLot.type]}</h3>
-        <p>OF ${currentLot.of} | ${piecesData.length} / ${currentLot.ech} pièces mesurées</p>
-    `;
-    g('saisieSection').classList.add('hidden');
-    g('rangementSection').classList.remove('hidden');
-}
-
 function finishLot() {
-    if (CS['rangement']?.running) stopC('rangement');
-    const tRangement = getC('rangement');
-    const last = piecesData[piecesData.length - 1];
-    last.tRangement = tRangement;
-    last.total += tRangement;
     piecesData.forEach(p => { p.echReel = piecesData.length; });
     save();
     renderTable(); renderStats();
@@ -993,7 +977,7 @@ function resetAll() {
     g('lotForm').reset();
     const t = new Date();
     g('lotDate').value = `${t.getFullYear()}-${String(t.getMonth()+1).padStart(2,'0')}-${String(t.getDate()).padStart(2,'0')}`;
-    ['corniere','panier','grainage','petite','deballage'].forEach(k => {
+    ['corniere','panier','grainage','petite','deballage','emballage'].forEach(k => {
         g('type-'+k).className = 'type-card';
     });
     g('dir-depart').className = 'type-card';
@@ -1006,7 +990,6 @@ function resetAll() {
     g('emballageZone').style.pointerEvents = '';
     g('liveTable').style.display = 'none';
     g('liveTbody').innerHTML = '';
-    g('rangementSection').classList.add('hidden');
     resetC('rangement');
     resetC('dossier');
     resetC('deballage');
