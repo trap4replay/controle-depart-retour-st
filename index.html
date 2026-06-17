@@ -566,6 +566,219 @@ tr:hover td { background: #f8f0f2; }
     <!-- SECTION RANGEMENT FINAL (supprimée — rangement saisi directement sur chaque pièce) -->
 </div>
 
+<!-- ══════════════════════════════════════════════════════════ -->
+<!-- FLUX CONTRÔLE SILICONE (overlay par-dessus le tab saisie) -->
+<!-- ══════════════════════════════════════════════════════════ -->
+<div id="siliconeFlow" class="hidden">
+
+  <!-- ÉTAPE 1 : Déclaration gamme -->
+  <div class="card" id="sil-gammeSection">
+    <h2>🔵 Contrôle silicone — Déclaration de la gamme</h2>
+    <form id="sil-gammeForm">
+      <div class="fgrid">
+        <div class="fgroup">
+          <label>Date *</label>
+          <input type="date" id="sil-date" required>
+        </div>
+        <div class="fgroup">
+          <label>Opérateur *</label>
+          <select id="sil-operateur" required>
+            <option value="">-- Sélectionner --</option>
+            <option>Stéphanie</option><option>Lillian</option><option>Stéphania</option>
+            <option>Elisabeth</option><option>Matthieu</option><option>Nicolas</option><option>Leila</option>
+          </select>
+        </div>
+        <div class="fgroup">
+          <label>N° Affaire *</label>
+          <input type="text" id="sil-affaire" placeholder="Ex: 15925 → A0015925" required
+            oninput="fmtAffaire(this)" onblur="fmtAffaire(this)">
+        </div>
+        <div class="fgroup">
+          <label>Nombre de lots dans la gamme *</label>
+          <input type="number" id="sil-nbLots" min="1" placeholder="Ex: 6" required>
+        </div>
+      </div>
+      <div id="sil-gammeErrors" style="color:#e94560;font-size:13px;margin-bottom:12px;display:none;"></div>
+      <button type="submit" class="btn btn-main">▶ Démarrer la gamme</button>
+      <button type="button" class="btn btn-danger" style="margin-left:10px" onclick="cancelSilicone()">❌ Annuler</button>
+    </form>
+  </div>
+
+  <!-- ÉTAPE 2 : Dossier ouverture -->
+  <div class="card hidden" id="sil-dossierOuvSection">
+    <div class="lot-banner" id="sil-gammeBanner"></div>
+    <h2>📁 Dossier — Ouverture de gamme</h2>
+    <p style="color:#888;font-size:13px;margin-bottom:16px;">Saisir une seule fois pour toute la gamme</p>
+    <div class="chrono-zone">
+      <div class="chrono-label">📁 Temps d'ouverture du dossier</div>
+      <div class="chrono-row">
+        <span class="chrono-display" id="cd_sil_dossierOuv">00:00</span>
+        <button type="button" class="btn-c start" id="cs_sil_dossierOuv" onclick="startC('sil_dossierOuv')">▶ Démarrer</button>
+        <button type="button" class="btn-c pause" id="cp_sil_dossierOuv" onclick="pauseC('sil_dossierOuv')" style="display:none">⏸ Pause</button>
+        <button type="button" class="btn-c stop"  id="ck_sil_dossierOuv" onclick="stopC('sil_dossierOuv')"  style="display:none">⏹ Arrêter</button>
+        <button type="button" class="btn-c reset" onclick="resetC('sil_dossierOuv')">↺</button>
+      </div>
+      <div class="manual-input">
+        <input type="number" id="ci_sil_dossierOuv" step="0.01" min="0" placeholder="0.00" oninput="manualC('sil_dossierOuv')">
+        <span>min (saisie manuelle)</span>
+      </div>
+    </div>
+    <button type="button" class="btn btn-main" onclick="silStartLots()">▶ Commencer les lots</button>
+    <button type="button" class="btn btn-danger" style="margin-left:10px" onclick="cancelSilicone()">❌ Annuler</button>
+  </div>
+
+  <!-- ÉTAPE 3 : Saisie lot par lot -->
+  <div class="card hidden" id="sil-lotSection">
+    <div class="lot-banner" id="sil-lotBanner"></div>
+    <div class="prog-bar"><div class="prog-fill" id="sil-progFill" style="width:0%">0%</div></div>
+    <div class="piece-ctr" id="sil-lotCtr"></div>
+
+    <!-- Infos du lot -->
+    <div id="sil-lotInfoSection">
+      <h3 style="color:#0f3460;margin-bottom:14px;font-size:15px;">📦 Informations du lot</h3>
+      <div class="fgrid">
+        <div class="fgroup">
+          <label>N° OF *</label>
+          <input type="text" id="sil-of" placeholder="Ex: 15925 → OF0015925" required
+            oninput="fmtOF(this)" onblur="fmtOF(this)">
+        </div>
+        <div class="fgroup">
+          <label>Référence *</label>
+          <input type="text" id="sil-ref" placeholder="Ex: SP-100" required>
+        </div>
+        <div class="fgroup">
+          <label>Type de pièce *</label>
+          <select id="sil-type" required>
+            <option value="">-- Sélectionner --</option>
+            <option value="corniere">Cornières</option>
+            <option value="panier">Paniers</option>
+            <option value="grainage">Pièces grainage</option>
+            <option value="petite">Petites pièces</option>
+            <option value="deballage">Déballage</option>
+            <option value="emballage">Emballage</option>
+          </select>
+        </div>
+        <div class="fgroup">
+          <label>Taille du lot *</label>
+          <input type="number" id="sil-qt" placeholder="Ex: 15" min="1" required>
+        </div>
+      </div>
+      <div id="sil-lotErrors" style="color:#e94560;font-size:13px;margin-bottom:12px;display:none;"></div>
+      <button type="button" class="btn btn-main" onclick="silStartPiece1()">▶ Démarrer pièce 1</button>
+      <button type="button" class="btn btn-danger" style="margin-left:10px" onclick="cancelSilicone()">❌ Annuler</button>
+    </div>
+
+    <!-- Pièce 1 : programmation + contrôle -->
+    <div id="sil-piece1Section" class="hidden">
+      <h3 style="color:#0f3460;margin-bottom:6px;font-size:15px;">🔧 Pièce 1 — Programmation + Contrôle dimensionnel</h3>
+      <p style="color:#888;font-size:12px;margin-bottom:16px;">Inclut la programmation machine + le premier contrôle (~10 min)</p>
+      <div class="chrono-zone">
+        <div class="chrono-label">⏱ Temps pièce 1 (prog + ctrl)</div>
+        <div class="chrono-row">
+          <span class="chrono-display" id="cd_sil_p1">00:00</span>
+          <button type="button" class="btn-c start" id="cs_sil_p1" onclick="startC('sil_p1')">▶ Démarrer</button>
+          <button type="button" class="btn-c pause" id="cp_sil_p1" onclick="pauseC('sil_p1')" style="display:none">⏸ Pause</button>
+          <button type="button" class="btn-c stop"  id="ck_sil_p1" onclick="stopC('sil_p1')"  style="display:none">⏹ Arrêter</button>
+          <button type="button" class="btn-c reset" onclick="resetC('sil_p1')">↺</button>
+        </div>
+        <div class="manual-input">
+          <input type="number" id="ci_sil_p1" step="0.01" min="0" placeholder="0.00" oninput="manualC('sil_p1')">
+          <span>min (saisie manuelle)</span>
+        </div>
+      </div>
+      <button type="button" class="btn btn-main" onclick="silDonePiece1()">➡️ Pièce 2</button>
+    </div>
+
+    <!-- Pièce 2 : contrôle seul -->
+    <div id="sil-piece2Section" class="hidden">
+      <h3 style="color:#0f3460;margin-bottom:6px;font-size:15px;">🔍 Pièce 2 — Contrôle dimensionnel</h3>
+      <p style="color:#888;font-size:12px;margin-bottom:16px;">Contrôle de la 2ème pièce (~0.5 min)</p>
+      <div class="chrono-zone">
+        <div class="chrono-label">⏱ Temps pièce 2 (ctrl)</div>
+        <div class="chrono-row">
+          <span class="chrono-display" id="cd_sil_p2">00:00</span>
+          <button type="button" class="btn-c start" id="cs_sil_p2" onclick="startC('sil_p2')">▶ Démarrer</button>
+          <button type="button" class="btn-c pause" id="cp_sil_p2" onclick="pauseC('sil_p2')" style="display:none">⏸ Pause</button>
+          <button type="button" class="btn-c stop"  id="ck_sil_p2" onclick="stopC('sil_p2')"  style="display:none">⏹ Arrêter</button>
+          <button type="button" class="btn-c reset" onclick="resetC('sil_p2')">↺</button>
+        </div>
+        <div class="manual-input">
+          <input type="number" id="ci_sil_p2" step="0.01" min="0" placeholder="0.00" oninput="manualC('sil_p2')">
+          <span>min (saisie manuelle)</span>
+        </div>
+      </div>
+      <button type="button" class="btn btn-main" onclick="silDonePiece2()">➡️ Comptage restant</button>
+    </div>
+
+    <!-- Comptage des pièces restantes -->
+    <div id="sil-comptageSection" class="hidden">
+      <h3 style="color:#0f3460;margin-bottom:6px;font-size:15px;">🧮 Comptage des pièces restantes</h3>
+      <p style="color:#888;font-size:12px;margin-bottom:16px;" id="sil-comptageLabel">Pièces restantes à compter</p>
+      <div class="chrono-zone">
+        <div class="chrono-label">⏱ Temps de comptage</div>
+        <div class="chrono-row">
+          <span class="chrono-display" id="cd_sil_cpt">00:00</span>
+          <button type="button" class="btn-c start" id="cs_sil_cpt" onclick="startC('sil_cpt')">▶ Démarrer</button>
+          <button type="button" class="btn-c pause" id="cp_sil_cpt" onclick="pauseC('sil_cpt')" style="display:none">⏸ Pause</button>
+          <button type="button" class="btn-c stop"  id="ck_sil_cpt" onclick="stopC('sil_cpt')"  style="display:none">⏹ Arrêter</button>
+          <button type="button" class="btn-c reset" onclick="resetC('sil_cpt')">↺</button>
+        </div>
+        <div class="manual-input">
+          <input type="number" id="ci_sil_cpt" step="0.01" min="0" placeholder="0.00" oninput="manualC('sil_cpt')">
+          <span>min (saisie manuelle)</span>
+        </div>
+      </div>
+      <div class="fgroup" style="max-width:260px;margin-bottom:16px;">
+        <label>Nombre de pièces comptées</label>
+        <input type="number" id="sil-nbComptees" min="0" placeholder="Ex: 13">
+      </div>
+      <div class="fgroup" style="margin-bottom:16px;">
+        <label>Observations (optionnel)</label>
+        <textarea id="sil-obs" rows="2" placeholder="Défaut constaté, remarque..."></textarea>
+      </div>
+      <button type="button" class="btn btn-main" onclick="silDoneLot()">✅ Lot terminé — Lot suivant</button>
+    </div>
+
+    <!-- Tableau live des lots silicone -->
+    <div class="live-table-wrap" id="sil-liveTable" style="display:none;margin-top:20px;">
+      <div class="live-table-header">📋 Lots silicone enregistrés — gamme en cours</div>
+      <div style="overflow-x:auto;">
+        <table>
+          <thead><tr>
+            <th>Lot</th><th>OF</th><th>Réf.</th><th>Type</th><th>Qt</th>
+            <th>🔧 P1 (prog+ctrl)</th><th>🔍 P2 (ctrl)</th><th>🧮 Comptage</th><th>Total</th><th>Obs.</th>
+          </tr></thead>
+          <tbody id="sil-liveTbody"></tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+
+  <!-- ÉTAPE 4 : Dossier clôture -->
+  <div class="card hidden" id="sil-dossierCloSection">
+    <div class="lot-banner" id="sil-cloBanner"></div>
+    <h2>📁 Dossier — Clôture de gamme</h2>
+    <p style="color:#888;font-size:13px;margin-bottom:16px;">Dernière étape — clôturer le dossier pour toute la gamme</p>
+    <div class="chrono-zone">
+      <div class="chrono-label">📁 Temps de clôture du dossier</div>
+      <div class="chrono-row">
+        <span class="chrono-display" id="cd_sil_dossierClo">00:00</span>
+        <button type="button" class="btn-c start" id="cs_sil_dossierClo" onclick="startC('sil_dossierClo')">▶ Démarrer</button>
+        <button type="button" class="btn-c pause" id="cp_sil_dossierClo" onclick="pauseC('sil_dossierClo')" style="display:none">⏸ Pause</button>
+        <button type="button" class="btn-c stop"  id="ck_sil_dossierClo" onclick="stopC('sil_dossierClo')"  style="display:none">⏹ Arrêter</button>
+        <button type="button" class="btn-c reset" onclick="resetC('sil_dossierClo')">↺</button>
+      </div>
+      <div class="manual-input">
+        <input type="number" id="ci_sil_dossierClo" step="0.01" min="0" placeholder="0.00" oninput="manualC('sil_dossierClo')">
+        <span>min (saisie manuelle)</span>
+      </div>
+    </div>
+    <button type="button" class="btn btn-main" onclick="silFinishGamme()">✅ Valider la gamme complète</button>
+    <button type="button" class="btn btn-danger" style="margin-left:10px" onclick="cancelSilicone()">❌ Annuler</button>
+  </div>
+
+</div><!-- /siliconeFlow -->
+
 <!-- ══════════════════════════════════════════════ -->
 <!-- TAB HISTORIQUE                                 -->
 <!-- ══════════════════════════════════════════════ -->
@@ -585,6 +798,11 @@ tr:hover td { background: #f8f0f2; }
                 <option value="petite">Petites pièces</option>
                 <option value="deballage">Déballage</option>
                 <option value="emballage">Emballage</option>
+            </select>
+            <select id="filterDir" onchange="renderTable()">
+                <option value="">Toutes directions</option>
+                <option value="depart">Départ ST</option>
+                <option value="retour">Retour ST</option>
                 <option value="silicone">Contrôle silicone</option>
             </select>
             <select id="filterOp" onchange="renderTable()">
@@ -684,6 +902,240 @@ function init() {
 }
 if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', init);
 else init();
+
+// ═══════════════════════════════════════════════════════════════
+// FLUX CONTRÔLE SILICONE
+// ═══════════════════════════════════════════════════════════════
+let silGamme   = null;   // infos gamme
+let silLots    = [];     // lots enregistrés dans la gamme en cours
+let silLotIdx  = 0;      // index du lot courant (0-based)
+let silStep    = '';     // 'gamme' | 'dossierOuv' | 'lotInfo' | 'p1' | 'p2' | 'comptage' | 'dossierClo'
+let silCurLot  = null;   // lot en cours de saisie
+
+function showSiliconeFlow() {
+    // Masquer le flux standard, afficher le flux silicone
+    g('tab-saisie').classList.remove('active');
+    g('siliconeFlow').classList.remove('hidden');
+    g('siliconeFlow').style.display = '';
+    // Init date
+    const t = new Date();
+    g('sil-date').value = `${t.getFullYear()}-${String(t.getMonth()+1).padStart(2,'0')}-${String(t.getDate()).padStart(2,'0')}`;
+    silSetStep('gamme');
+}
+
+function cancelSilicone() {
+    if (!confirm('Annuler le contrôle silicone en cours ? Les données non validées seront perdues.')) return;
+    silReset();
+}
+
+function silReset() {
+    silGamme = null; silLots = []; silLotIdx = 0; silCurLot = null; silStep = '';
+    ['sil-gammeSection','sil-dossierOuvSection','sil-lotSection','sil-dossierCloSection'].forEach(id => g(id).classList.add('hidden'));
+    g('siliconeFlow').classList.add('hidden');
+    g('siliconeFlow').style.display = 'none';
+    // Réafficher le tab saisie normal
+    g('tab-saisie').classList.add('active');
+    selectedDir = ''; selectedType = '';
+    ['depart','retour','silicone'].forEach(k => { g('dir-'+k).className='type-card'; g('dir-'+k).style.borderColor=''; });
+}
+
+function silSetStep(step) {
+    silStep = step;
+    ['sil-gammeSection','sil-dossierOuvSection','sil-lotSection','sil-dossierCloSection'].forEach(id => g(id).classList.add('hidden'));
+    ['sil-lotInfoSection','sil-piece1Section','sil-piece2Section','sil-comptageSection'].forEach(id => g(id).classList.add('hidden'));
+    if (step === 'gamme')       g('sil-gammeSection').classList.remove('hidden');
+    if (step === 'dossierOuv')  { g('sil-dossierOuvSection').classList.remove('hidden'); initC('sil_dossierOuv'); }
+    if (step === 'lotInfo')     { g('sil-lotSection').classList.remove('hidden'); g('sil-lotInfoSection').classList.remove('hidden'); silUpdateProgress(); }
+    if (step === 'p1')          { g('sil-lotSection').classList.remove('hidden'); g('sil-piece1Section').classList.remove('hidden'); initC('sil_p1'); silUpdateProgress(); }
+    if (step === 'p2')          { g('sil-lotSection').classList.remove('hidden'); g('sil-piece2Section').classList.remove('hidden'); initC('sil_p2'); silUpdateProgress(); }
+    if (step === 'comptage')    { g('sil-lotSection').classList.remove('hidden'); g('sil-comptageSection').classList.remove('hidden'); initC('sil_cpt'); silUpdateProgress(); }
+    if (step === 'dossierClo')  { g('sil-dossierCloSection').classList.remove('hidden'); initC('sil_dossierClo'); silUpdateCloture(); }
+}
+
+function silUpdateProgress() {
+    const total = silGamme.nbLots;
+    const done  = silLots.length;
+    const pct   = Math.round((done / total) * 100);
+    g('sil-progFill').style.width = pct + '%';
+    g('sil-progFill').textContent  = pct + '%';
+    g('sil-lotCtr').textContent    = `Lot ${done + 1} / ${total}`;
+    g('sil-lotBanner').innerHTML   = `
+        <h3>🔵 Gamme silicone — Affaire ${silGamme.affaire}</h3>
+        <p>${silGamme.operateur} | ${new Date(silGamme.date).toLocaleDateString('fr-FR')} | ${total} lots à contrôler</p>`;
+    silRenderLiveTable();
+}
+
+function silUpdateCloture() {
+    g('sil-cloBanner').innerHTML = `
+        <h3>🔵 Gamme silicone — Affaire ${silGamme.affaire}</h3>
+        <p>${silLots.length} lots enregistrés — clôture du dossier</p>`;
+}
+
+function silRenderLiveTable() {
+    if (!silLots.length) { g('sil-liveTable').style.display='none'; return; }
+    g('sil-liveTable').style.display = 'block';
+    const fmt = v => v > 0 ? v.toFixed(2)+' min' : '—';
+    g('sil-liveTbody').innerHTML = silLots.map((l,i) => `<tr>
+        <td><strong>#${i+1}</strong></td>
+        <td>${l.of}</td>
+        <td>${l.ref}</td>
+        <td><span class="badge ${TYPE_BADGES[l.type]||''}">${TYPE_LABELS[l.type]||l.type}</span></td>
+        <td>${l.qt}</td>
+        <td>${fmt(l.tP1)}</td>
+        <td>${fmt(l.tP2)}</td>
+        <td>${fmt(l.tComptage)} ${l.nbComptees > 0 ? '('+l.nbComptees+' pcs)' : ''}</td>
+        <td><strong>${fmt(l.total)}</strong></td>
+        <td>${l.obs||'—'}</td>
+    </tr>`).join('');
+}
+
+// Formulaire gamme soumis
+document.getElementById('sil-gammeForm').addEventListener('submit', function(e) {
+    e.preventDefault();
+    const err = [];
+    if (!g('sil-date').value)      err.push('Date requise');
+    if (!g('sil-operateur').value) err.push('Opérateur requis');
+    if (!g('sil-affaire').value)   err.push('N° Affaire requis');
+    if (!g('sil-nbLots').value || parseInt(g('sil-nbLots').value) < 1) err.push('Nombre de lots requis');
+    if (err.length) { g('sil-gammeErrors').textContent = '⚠️ ' + err.join(' — '); g('sil-gammeErrors').style.display='block'; return; }
+    g('sil-gammeErrors').style.display = 'none';
+    silGamme = {
+        date:     g('sil-date').value,
+        operateur:g('sil-operateur').value,
+        affaire:  g('sil-affaire').value.trim(),
+        nbLots:   parseInt(g('sil-nbLots').value),
+    };
+    silLots = []; silLotIdx = 0;
+    g('sil-gammeBanner').innerHTML = `
+        <h3>🔵 Gamme silicone — Affaire ${silGamme.affaire}</h3>
+        <p>${silGamme.operateur} | ${new Date(silGamme.date).toLocaleDateString('fr-FR')} | ${silGamme.nbLots} lots</p>`;
+    silSetStep('dossierOuv');
+});
+
+function silStartLots() {
+    silGamme.tDossierOuv = getC('sil_dossierOuv');
+    // Réinitialiser les champs du lot
+    g('sil-of').value=''; g('sil-ref').value=''; g('sil-type').value=''; g('sil-qt').value='';
+    g('sil-obs').value=''; g('sil-nbComptees').value='';
+    silSetStep('lotInfo');
+}
+
+function silStartPiece1() {
+    const err = [];
+    if (!g('sil-of').value.trim())  err.push('N° OF requis');
+    if (!g('sil-ref').value.trim()) err.push('Référence requise');
+    if (!g('sil-type').value)       err.push('Type de pièce requis');
+    if (!g('sil-qt').value || parseInt(g('sil-qt').value) < 1) err.push('Taille lot requise');
+    if (err.length) { g('sil-lotErrors').textContent='⚠️ '+err.join(' — '); g('sil-lotErrors').style.display='block'; return; }
+    g('sil-lotErrors').style.display='none';
+    silCurLot = {
+        of:   g('sil-of').value.trim(),
+        ref:  g('sil-ref').value.trim(),
+        type: g('sil-type').value,
+        qt:   parseInt(g('sil-qt').value),
+    };
+    silSetStep('p1');
+}
+
+function silDonePiece1() {
+    silCurLot.tP1 = getC('sil_p1');
+    // Mettre à jour le label comptage
+    const restant = Math.max(0, silCurLot.qt - 2);
+    g('sil-comptageLabel').textContent = `${restant} pièce(s) restante(s) à compter (lot de ${silCurLot.qt} − 2 contrôlées)`;
+    silSetStep('p2');
+}
+
+function silDonePiece2() {
+    silCurLot.tP2 = getC('sil_p2');
+    const restant = Math.max(0, silCurLot.qt - 2);
+    g('sil-comptageLabel').textContent = `${restant} pièce(s) restante(s) à compter (lot de ${silCurLot.qt} − 2 contrôlées)`;
+    silSetStep('comptage');
+}
+
+function silDoneLot() {
+    const tCpt = getC('sil_cpt');
+    const nbC  = parseInt(g('sil-nbComptees').value) || Math.max(0, silCurLot.qt - 2);
+    const obs  = g('sil-obs').value.trim();
+    silCurLot.tComptage  = tCpt;
+    silCurLot.nbComptees = nbC;
+    silCurLot.obs        = obs;
+    silCurLot.total      = (silCurLot.tP1||0) + (silCurLot.tP2||0) + (tCpt||0);
+    silLots.push({ ...silCurLot });
+    silCurLot = null;
+
+    if (silLots.length >= silGamme.nbLots) {
+        // Tous les lots faits → clôture dossier
+        silSetStep('dossierClo');
+    } else {
+        // Lot suivant
+        g('sil-of').value=''; g('sil-ref').value=''; g('sil-type').value=''; g('sil-qt').value='';
+        g('sil-obs').value=''; g('sil-nbComptees').value='';
+        silSetStep('lotInfo');
+    }
+}
+
+function silFinishGamme() {
+    const tDossierClo = getC('sil_dossierClo');
+    const tDossierOuv = silGamme.tDossierOuv || 0;
+    const tDossierTotal = tDossierOuv + tDossierClo;
+
+    // Distribuer le temps de dossier sur le 1er lot (ouverture) et le dernier (clôture)
+    // puis enregistrer chaque lot comme une ligne dans data[]
+    silLots.forEach((lot, i) => {
+        const isFirst = i === 0;
+        const isLast  = i === silLots.length - 1;
+        const tDoss   = (isFirst ? tDossierOuv : 0) + (isLast ? tDossierClo : 0);
+        const total   = lot.total + tDoss;
+
+        data.push({
+            date:        silGamme.date,
+            operateur:   silGamme.operateur,
+            affaire:     silGamme.affaire,
+            of:          lot.of,
+            ref:         lot.ref,
+            qt:          lot.qt,
+            ech:         2,           // 2 pièces contrôlées + comptage
+            echReel:     2,
+            direction:   'silicone',
+            type:        lot.type,
+            pieceNumber: i + 1,
+            tDossier:    tDoss,
+            tCtrl:       (lot.tP1||0) + (lot.tP2||0),
+            tP1:         lot.tP1 || 0,
+            tP2:         lot.tP2 || 0,
+            tComptage:   lot.tComptage || 0,
+            nbComptees:  lot.nbComptees || 0,
+            tDeballage:  0,
+            tEmballage:  0,
+            tRangement:  0,
+            total:       total,
+            obs:         lot.obs || '',
+            statut:      'Complet',
+            gammeAffaire: silGamme.affaire,
+            nbLotsGamme:  silGamme.nbLots,
+        });
+    });
+
+    save();
+    renderTable();
+    renderStats();
+    alert(`✅ Gamme silicone terminée !\n${silLots.length} lots enregistrés pour l'affaire ${silGamme.affaire}.\nTemps dossier total : ${tDossierTotal.toFixed(2)} min`);
+    silReset();
+    goTab('historique');
+}
+
+// Intercepter la sélection de direction pour lancer le flux silicone
+const _origSelectDir = selectDir;
+function selectDir(d) {
+    if (d === 'silicone') {
+        // Reset la sélection direction avant d'ouvrir le flux
+        selectedDir = '';
+        ['depart','retour','silicone'].forEach(k => { const el=g('dir-'+k); if(el){el.className='type-card'; el.style.borderColor='';} });
+        showSiliconeFlow();
+        return;
+    }
+    _origSelectDir(d);
+}
 
 // ═══════════════════════════════════════════════
 // AUTO-FORMAT AFFAIRE / OF
@@ -1058,10 +1510,12 @@ function clearAll() {
 // ═══════════════════════════════════════════════
 function renderTable() {
     const fType   = g('filterType')?.value   || '';
+    const fDir    = g('filterDir')?.value    || '';
     const fOp     = g('filterOp')?.value     || '';
     const fStatut = g('filterStatut')?.value || '';
     const filtered = data.filter(r =>
         (!fType   || r.type === fType) &&
+        (!fDir    || r.direction === fDir) &&
         (!fOp     || r.operateur === fOp) &&
         (!fStatut || (r.statut || 'Complet') === fStatut)
     );
@@ -1069,10 +1523,27 @@ function renderTable() {
     if (!tbody) return;
     tbody.innerHTML = '';
     filtered.forEach((r) => {
+        const isSil = r.direction === 'silicone';
         const typeBadge = `<span class="badge ${TYPE_BADGES[r.type]||''}">${TYPE_LABELS[r.type]||r.type}</span>`;
         const statutBadge = (r.statut === 'Incomplet')
             ? `<span class="badge badge-incomplet">⚠️ Incomplet (${r.echReel ?? '?'}/${r.ech})</span>`
             : `<span class="badge badge-complet">✅ Complet</span>`;
+        const dirBadge = r.direction === 'depart'
+            ? '<span class="badge" style="background:#fff0c0;color:#b37a00;border:1px solid #f5a623">📤 Départ ST</span>'
+            : r.direction === 'retour'
+            ? '<span class="badge" style="background:#d0f4fb;color:#006f87;border:1px solid #00b4d8">📥 Retour ST</span>'
+            : r.direction === 'silicone'
+            ? '<span class="badge badge-silicone">🔵 Ctrl silicone</span>'
+            : '—';
+        // Colonne ctrl : pour silicone on affiche P1 + P2 détaillés, sinon tCtrl
+        const ctrlCell = isSil
+            ? `<span title="P1: ${fmt(r.tP1||0)} / P2: ${fmt(r.tP2||0)}">🔧${fmt(r.tP1||0)} + 🔍${fmt(r.tP2||0)}</span>`
+            : fmt(r.tCtrl);
+        // Colonne comptage (silicone) ou rangement
+        const extraCell = isSil
+            ? `${(r.tComptage||0)>0 ? '🧮'+fmt(r.tComptage)+(r.nbComptees?' ('+r.nbComptees+' pcs)':'') : '—'}`
+            : `${(r.tRangement||0)>0 ? fmt(r.tRangement) : '—'}`;
+        const extraLabel = isSil ? 'Comptage' : 'Rangement';
         const tr = document.createElement('tr');
         tr.innerHTML = `
             <td>${new Date(r.date).toLocaleDateString('fr-FR')}</td>
@@ -1080,16 +1551,16 @@ function renderTable() {
             <td>${r.affaire||'-'}</td>
             <td>${r.of||'-'}</td>
             <td><strong>${r.ref}</strong></td>
-            <td>${r.direction === 'depart' ? '<span class="badge" style="background:#fff0c0;color:#b37a00;border:1px solid #f5a623">📤 Départ ST</span>' : r.direction === 'retour' ? '<span class="badge" style="background:#d0f4fb;color:#006f87;border:1px solid #00b4d8">📥 Retour ST</span>' : r.direction === 'silicone' ? '<span class="badge badge-silicone">🔵 Ctrl silicone</span>' : '—'}</td>
+            <td>${dirBadge}</td>
             <td>${typeBadge}</td>
             <td>#${r.pieceNumber}</td>
             <td>${r.qt}</td>
             <td>${r.ech||'-'}</td>
             <td>${r.tDossier > 0 ? fmt(r.tDossier) : '—'}</td>
-            <td>${(r.tDeballage||0) > 0 ? fmt(r.tDeballage) : '—'}</td>
-            <td>${fmt(r.tCtrl)}</td>
+            <td>${(r.tDeballage||0) > 0 ? fmt(r.tDeballage) : (isSil ? '—' : '—')}</td>
+            <td>${ctrlCell}</td>
             <td>${(r.tEmballage||0) > 0 ? fmt(r.tEmballage) : '—'}</td>
-            <td>${(r.tRangement||0) > 0 ? fmt(r.tRangement) : '—'}</td>
+            <td>${extraCell}</td>
             <td><strong>${fmt(r.total)}</strong></td>
             <td>${r.obs||'—'}</td>
             <td>${statutBadge}</td>
