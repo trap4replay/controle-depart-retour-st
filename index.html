@@ -320,6 +320,7 @@ tr:hover td { background: #f8f0f2; }
 .import-result.error   { background: #ffe9ec; color: #c0143a; border: 1px solid #e94560; }
 
 /* STATS TABLE */
+.stats-tbl-wrap { overflow-x: auto; border-radius: 8px; }
 .stats-tbl { width: 100%; border-collapse: collapse; font-size: 13px; margin-top: 12px; }
 .stats-tbl th { background: #0f3460; color: white; padding: 10px 12px; text-align: left; font-size: 11px; text-transform: uppercase; letter-spacing: 0.4px; }
 .stats-tbl td { padding: 10px 12px; border-bottom: 1px solid #e8ecf1; }
@@ -1882,7 +1883,7 @@ function renderStats() {
             <div class="stat-box amber"><h4>Lots (OF)</h4><div class="val">${lots}</div></div>
             <div class="stat-box red"><h4>Lots incomplets</h4><div class="val">${lotsIncomplets}</div></div>
         </div>
-        <table class="stats-tbl">
+        <div class="stats-tbl-wrap"><table class="stats-tbl">
         <thead><tr>
             <th>Direction</th>
             <th>Lignes / pièces</th>
@@ -1923,7 +1924,7 @@ function renderStats() {
             <td>${avgEmbD > 0 ? fmt(avgEmbD) : '—'}</td>
         </tr>`;
     });
-    html += `</tbody></table>
+    html += `</tbody></table></div>
         <p style="font-size:11px;color:#999;margin-top:8px;">* Moyennes calculées sur les OF / lignes appartenant à chaque direction</p>
     </div>`;
 
@@ -1939,7 +1940,7 @@ function renderStats() {
             byGamme[gk].types[tk].count++;
         });
         html += `<div class="card"><h2>🔵 Détail des gammes silicone par type de pièce</h2>
-        <table class="stats-tbl">
+        <div class="stats-tbl-wrap"><table class="stats-tbl">
         <thead><tr>
             <th>Affaire (gamme)</th>
             <th>Nb lots déclaré</th>
@@ -1959,13 +1960,13 @@ function renderStats() {
                 <td><strong>${totalPieces}</strong></td>
             </tr>`;
         });
-        html += `</tbody></table></div>`;
+        html += `</tbody></table></div></div>`;
     }
 
     // ── 2. TEMPS DE CONTRÔLE PAR TYPE DE PIÈCE ──
     html += `<div class="card"><h2>🔍 Temps de contrôle par type de pièce</h2>
     <p style="font-size:12px;color:#888;margin-bottom:14px;">Temps de contrôle unitaire mesuré sur l'échantillon — extrapolé à la taille moyenne du lot pour ce type</p>
-    <table class="stats-tbl">
+    <div class="stats-tbl-wrap"><table class="stats-tbl">
         <thead><tr>
             <th>Type de pièce</th>
             <th>Pièces mesurées</th>
@@ -2002,7 +2003,7 @@ function renderStats() {
         <td>${fmt(Math.max(...data.map(r=>r.tCtrl)))}</td>
         <td>${fmt(gAvg*gAvgQt)} <span style="font-size:10px;color:#bbb;">(${fmt(gAvg)}×${Math.round(gAvgQt)})</span></td>
     </tr>`;
-    html += `</tbody></table></div>`;
+    html += `</tbody></table></div></div>`;
 
     const totDoss    = ofList.reduce((s,o)=>s+o.tDossier,0);
     const totCtrlLot = ofList.reduce((s,o)=>s+o.tCtrlLot,0);
@@ -2013,7 +2014,7 @@ function renderStats() {
     // ── 3. DÉBALLAGE / EMBALLAGE PAR OF ──
     html += `<div class="card"><h2>📦📫 Déballage / Emballage par OF</h2>
     <p style="font-size:12px;color:#888;margin-bottom:14px;">Temps de déballage et d'emballage cumulés par OF</p>
-    <table class="stats-tbl">
+    <div class="stats-tbl-wrap"><table class="stats-tbl">
         <thead><tr>
             <th>N° OF</th>
             <th>Affaire</th>
@@ -2051,12 +2052,12 @@ function renderStats() {
         <td>${fmt(totDebStat / data.length)}</td>
         <td>${fmt(totEmbStat / data.length)}</td>
     </tr>`;
-    html += `</tbody></table></div>`;
+    html += `</tbody></table></div></div>`;
 
     // ── 4. TEMPS DE DOSSIER (préparation dossier fab, sans pièces) ──
     html += `<div class="card"><h2>📁 Temps de dossier par OF</h2>
     <p style="font-size:12px;color:#888;margin-bottom:14px;">Temps de préparation du dossier de fabrication uniquement (saisi une seule fois par OF)</p>
-    <table class="stats-tbl">
+    <div class="stats-tbl-wrap"><table class="stats-tbl">
         <thead><tr>
             <th>N° OF</th>
             <th>Affaire</th>
@@ -2079,12 +2080,12 @@ function renderStats() {
         <td colspan="4">MOYENNE</td>
         <td>${fmt(avgDoss)}</td>
     </tr>`;
-    html += `</tbody></table></div>`;
+    html += `</tbody></table></div></div>`;
 
     // ── 5. TEMPS COMPTAGE / RANGEMENT ──
     html += `<div class="card"><h2>🧮 Temps comptage / rangement par OF</h2>
     <p style="font-size:12px;color:#888;margin-bottom:14px;">Temps de rangement et comptage saisi en fin de lot</p>
-    <table class="stats-tbl">
+    <div class="stats-tbl-wrap"><table class="stats-tbl">
         <thead><tr>
             <th>N° OF</th>
             <th>Affaire</th>
@@ -2109,47 +2110,76 @@ function renderStats() {
         <td colspan="5">MOYENNE</td>
         <td>${fmt(avgRang)}</td>
     </tr>`;
-    html += `</tbody></table></div>`;
+    html += `</tbody></table></div></div>`;
 
-    // ── 6. TEMPS MOYENS PAR OPÉRATEUR ──
-    const opMap = {};
-    data.forEach(r => {
-        if (!opMap[r.operateur]) opMap[r.operateur] = { pieces:0, tCtrlTotal:0, tDossier:0, tRangement:0, ofsDoss:new Set(), ofsRang:new Set() };
-        opMap[r.operateur].pieces++;
-        opMap[r.operateur].tCtrlTotal += r.tCtrl;
-        if ((r.tDossier||0) > 0) {
-            opMap[r.operateur].tDossier += r.tDossier;
-            opMap[r.operateur].ofsDoss.add(r.of);
-        }
-        if ((r.tRangement||0) > 0) {
-            opMap[r.operateur].tRangement += r.tRangement;
-            opMap[r.operateur].ofsRang.add(r.of);
-        }
-    });
-    const opList = Object.entries(opMap).sort((a,b)=>b[1].pieces-a[1].pieces);
-
+    // ── 6. TEMPS MOYENS PAR OPÉRATEUR (comparaison au sein de chaque direction) ──
     html += `<div class="card"><h2>👤 Temps moyens par opérateur</h2>
-    <table class="stats-tbl">
-        <thead><tr>
-            <th>Opérateur</th>
-            <th>Pièces mesurées</th>
-            <th>Tps ctrl moyen / pièce</th>
-            <th>Tps dossier moyen / OF</th>
-            <th>Tps rangement moyen / OF</th>
-        </tr></thead>
-        <tbody>`;
-    opList.forEach(([op, v]) => {
-        const avgDoss = v.ofsDoss.size ? v.tDossier / v.ofsDoss.size : 0;
-        const avgRang = v.ofsRang.size ? v.tRangement / v.ofsRang.size : 0;
-        html += `<tr>
-            <td><strong>${op}</strong></td>
-            <td>${v.pieces}</td>
-            <td>${fmt(v.tCtrlTotal/v.pieces)}</td>
-            <td>${avgDoss > 0 ? fmt(avgDoss) : '—'}</td>
-            <td>${avgRang > 0 ? fmt(avgRang) : '—'}</td>
-        </tr>`;
+    <p style="font-size:12px;color:#888;margin-bottom:14px;">Comparaison des opérateurs au sein d'une même direction uniquement — le travail n'est pas comparable entre Départ ST, Retour ST et Contrôle silicone</p>`;
+
+    dirKeys.forEach(dk => {
+        const rowsDir = data.filter(r => r.direction === dk);
+        if (!rowsDir.length) return;
+
+        const opMap = {};
+        rowsDir.forEach(r => {
+            if (!opMap[r.operateur]) opMap[r.operateur] = { pieces:0, tCtrlTotal:0, tDossier:0, tRangement:0, tP1:0, tP2:0, tComptage:0, ofsDoss:new Set(), ofsRang:new Set() };
+            opMap[r.operateur].pieces++;
+            if (dk === 'silicone') {
+                opMap[r.operateur].tP1 += (r.tP1||0);
+                opMap[r.operateur].tP2 += (r.tP2||0);
+                opMap[r.operateur].tComptage += (r.tComptage||0);
+            } else {
+                opMap[r.operateur].tCtrlTotal += r.tCtrl;
+            }
+            if ((r.tDossier||0) > 0) {
+                opMap[r.operateur].tDossier += r.tDossier;
+                opMap[r.operateur].ofsDoss.add(r.of);
+            }
+            if ((r.tRangement||0) > 0) {
+                opMap[r.operateur].tRangement += r.tRangement;
+                opMap[r.operateur].ofsRang.add(r.of);
+            }
+        });
+        const opList = Object.entries(opMap).sort((a,b)=>b[1].pieces-a[1].pieces);
+
+        html += `<h3 style="font-size:14px;color:#0f3460;margin:18px 0 8px;">${DIR_LABELS[dk]}</h3>
+        <div class="stats-tbl-wrap"><table class="stats-tbl">
+            <thead><tr>
+                <th>Opérateur</th>
+                <th>${dk === 'silicone' ? 'Lots mesurés' : 'Pièces mesurées'}</th>
+                ${dk === 'silicone'
+                    ? '<th>Tps P1 moyen</th><th>Tps P2 moyen</th><th>Tps comptage moyen</th>'
+                    : '<th>Tps ctrl moyen / pièce</th>'}
+                <th>Tps dossier moyen / OF</th>
+                <th>Tps rangement moyen / OF</th>
+            </tr></thead>
+            <tbody>`;
+        opList.forEach(([op, v]) => {
+            const avgDoss = v.ofsDoss.size ? v.tDossier / v.ofsDoss.size : 0;
+            const avgRang = v.ofsRang.size ? v.tRangement / v.ofsRang.size : 0;
+            if (dk === 'silicone') {
+                html += `<tr>
+                    <td><strong>${op}</strong></td>
+                    <td>${v.pieces}</td>
+                    <td>${fmt(v.tP1/v.pieces)}</td>
+                    <td>${fmt(v.tP2/v.pieces)}</td>
+                    <td>${fmt(v.tComptage/v.pieces)}</td>
+                    <td>${avgDoss > 0 ? fmt(avgDoss) : '—'}</td>
+                    <td>${avgRang > 0 ? fmt(avgRang) : '—'}</td>
+                </tr>`;
+            } else {
+                html += `<tr>
+                    <td><strong>${op}</strong></td>
+                    <td>${v.pieces}</td>
+                    <td>${fmt(v.tCtrlTotal/v.pieces)}</td>
+                    <td>${avgDoss > 0 ? fmt(avgDoss) : '—'}</td>
+                    <td>${avgRang > 0 ? fmt(avgRang) : '—'}</td>
+                </tr>`;
+            }
+        });
+        html += `</tbody></table></div>`;
     });
-    html += `</tbody></table></div>`;
+    html += `</div>`;
 
     c.innerHTML = html;
 }
