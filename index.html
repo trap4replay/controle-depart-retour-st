@@ -209,6 +209,7 @@ tr:hover td { background: #f8f0f2; }
 .badge-petite   { background: #fff6e6; color: #aa5500; }
 .badge-deballage{ background: #fff0e6; color: #aa2200; }
 .badge-emballage{ background: #e6f7ff; color: #005b99; }
+.badge-silicone { background: #eef0ff; color: #3b3bcc; border: 1px solid #aab0ff; }
 .badge-complet   { background: #e6fff0; color: #007a2e; border: 1px solid #27ae60; }
 .badge-incomplet { background: #ffe9ec; color: #c0143a; border: 1px solid #e94560; }
 
@@ -343,6 +344,25 @@ tr:hover td { background: #f8f0f2; }
     <div class="card" id="lotSection">
         <h2>📦 Déclaration du lot</h2>
         <form id="lotForm">
+
+            <!-- DIRECTION — en premier -->
+            <label style="display:block; margin-bottom:10px; font-size:12px; font-weight:700; color:#444; text-transform:uppercase; letter-spacing:0.4px;">Direction *</label>
+            <div style="display:grid; grid-template-columns:1fr 1fr 1fr; gap:12px; margin-bottom:24px;">
+                <div class="type-card" id="dir-depart" onclick="selectDir('depart')" style="border-color:#f5a623;">
+                    <span class="type-icon">📤</span>
+                    <span class="type-name">Départ ST</span>
+                </div>
+                <div class="type-card" id="dir-retour" onclick="selectDir('retour')" style="border-color:#00b4d8;">
+                    <span class="type-icon">📥</span>
+                    <span class="type-name">Retour ST</span>
+                </div>
+                <div class="type-card" id="dir-silicone" onclick="selectDir('silicone')" style="border-color:#3b3bcc;">
+                    <span class="type-icon">🔵</span>
+                    <span class="type-name">Contrôle silicone</span>
+                </div>
+            </div>
+            <input type="hidden" id="lotDirection">
+
             <div class="fgrid">
                 <div class="fgroup">
                     <label>Date *</label>
@@ -363,11 +383,13 @@ tr:hover td { background: #f8f0f2; }
                 </div>
                 <div class="fgroup">
                     <label>N° Affaire *</label>
-                    <input type="text" id="lotAffaire" placeholder="Ex: A00" required>
+                    <input type="text" id="lotAffaire" placeholder="Ex: 15925 → A0015925" required
+                        oninput="fmtAffaire(this)" onblur="fmtAffaire(this)">
                 </div>
                 <div class="fgroup">
                     <label>N° OF *</label>
-                    <input type="text" id="lotOF" placeholder="Ex: OF00" required>
+                    <input type="text" id="lotOF" placeholder="Ex: 15925 → OF0015925" required
+                        oninput="fmtOF(this)" onblur="fmtOF(this)">
                 </div>
                 <div class="fgroup">
                     <label>Référence *</label>
@@ -382,20 +404,6 @@ tr:hover td { background: #f8f0f2; }
                     <input type="number" id="lotEch" placeholder="Ex: 10" min="1" required>
                 </div>
             </div>
-
-            <!-- DIRECTION -->
-            <label style="display:block; margin-bottom:10px; font-size:12px; font-weight:700; color:#444; text-transform:uppercase; letter-spacing:0.4px;">Direction *</label>
-            <div style="display:grid; grid-template-columns:1fr 1fr; gap:12px; margin-bottom:20px;">
-                <div class="type-card" id="dir-depart" onclick="selectDir('depart')" style="border-color:#f5a623;">
-                    <span class="type-icon">📤</span>
-                    <span class="type-name">Départ ST</span>
-                </div>
-                <div class="type-card" id="dir-retour" onclick="selectDir('retour')" style="border-color:#00b4d8;">
-                    <span class="type-icon">📥</span>
-                    <span class="type-name">Retour ST</span>
-                </div>
-            </div>
-            <input type="hidden" id="lotDirection">
 
             <!-- TYPE PIÈCE -->
             <label style="display:block; margin-bottom:10px;">Type de pièce *</label>
@@ -575,6 +583,9 @@ tr:hover td { background: #f8f0f2; }
                 <option value="panier">Paniers</option>
                 <option value="grainage">Grainage</option>
                 <option value="petite">Petites pièces</option>
+                <option value="deballage">Déballage</option>
+                <option value="emballage">Emballage</option>
+                <option value="silicone">Contrôle silicone</option>
             </select>
             <select id="filterOp" onchange="renderTable()">
                 <option value="">Tous opérateurs</option>
@@ -654,10 +665,10 @@ let deballageSaved = false;
 let selectedType = '';
 let selectedDir  = '';
 
-const TYPE_LABELS = { corniere:'Cornières', panier:'Paniers', grainage:'Pièces grainage', petite:'Petites pièces', deballage:'Déballage', emballage:'Emballage' };
+const TYPE_LABELS = { corniere:'Cornières', panier:'Paniers', grainage:'Pièces grainage', petite:'Petites pièces', deballage:'Déballage', emballage:'Emballage', silicone:'Contrôle silicone' };
 const TYPE_BADGES = {
     corniere:'badge-corniere', panier:'badge-panier',
-    grainage:'badge-grainage', petite:'badge-petite', deballage:'badge-deballage', emballage:'badge-emballage'
+    grainage:'badge-grainage', petite:'badge-petite', deballage:'badge-deballage', emballage:'badge-emballage', silicone:'badge-silicone'
 };
 
 // ═══════════════════════════════════════════════
@@ -673,6 +684,29 @@ function init() {
 }
 if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', init);
 else init();
+
+// ═══════════════════════════════════════════════
+// AUTO-FORMAT AFFAIRE / OF
+// ═══════════════════════════════════════════════
+function fmtCode(raw, prefix, totalLen) {
+    // Enlever le préfixe s'il est déjà là (insensible à la casse)
+    let val = raw.trim().toUpperCase();
+    if (val.startsWith(prefix)) val = val.slice(prefix.length);
+    // Garder uniquement les chiffres
+    val = val.replace(/\D/g, '');
+    if (!val) return raw.trim(); // rien à formater
+    // Pad à gauche pour atteindre totalLen - prefix.length
+    const padLen = totalLen - prefix.length;
+    return prefix + val.padStart(padLen, '0');
+}
+function fmtAffaire(el) {
+    const fmt = fmtCode(el.value, 'A', 8); // A0015925 = 8 chars
+    if (fmt !== el.value) el.value = fmt;
+}
+function fmtOF(el) {
+    const fmt = fmtCode(el.value, 'OF', 9); // OF0015925 = 9 chars
+    if (fmt !== el.value) el.value = fmt;
+}
 
 // ═══════════════════════════════════════════════
 // TABS
@@ -701,11 +735,13 @@ function selectType(t) {
 function selectDir(d) {
     selectedDir = d;
     document.getElementById('lotDirection').value = d;
-    document.getElementById('dir-depart').className = 'type-card' + (d==='depart' ? ' selected' : '');
-    document.getElementById('dir-retour').className = 'type-card' + (d==='retour' ? ' selected' : '');
-    // Fix border colors after class reset
-    document.getElementById('dir-depart').style.borderColor = d==='depart' ? '#f5a623' : '';
-    document.getElementById('dir-retour').style.borderColor = d==='retour' ? '#00b4d8' : '';
+    ['depart','retour','silicone'].forEach(k => {
+        const el = document.getElementById('dir-'+k);
+        el.className = 'type-card' + (k===d ? ' selected' : '');
+        el.style.borderColor = k===d
+            ? (k==='depart' ? '#f5a623' : k==='retour' ? '#00b4d8' : '#3b3bcc')
+            : '';
+    });
 }
 
 // ═══════════════════════════════════════════════
@@ -777,7 +813,7 @@ function g(id) { return document.getElementById(id); }
 document.getElementById('lotForm').addEventListener('submit', function(e) {
     e.preventDefault();
     const err = [];
-    if (!selectedDir)  err.push('Sélectionnez une direction (Départ ST / Retour ST)');
+    if (!selectedDir)  err.push('Sélectionnez une direction (Départ ST / Retour ST / Contrôle silicone)');
     if (!selectedType) err.push('Sélectionnez un type de pièce');
     if (err.length) {
         const el = g('lotFormErrors');
@@ -805,7 +841,7 @@ document.getElementById('lotForm').addEventListener('submit', function(e) {
 
     initC('dossier'); initC('deballage'); initC('emballage'); initC('ctrl'); initC('rangement');
 
-    const dirLabel = selectedDir === 'depart' ? '📤 Départ ST' : '📥 Retour ST';
+    const dirLabel = selectedDir === 'depart' ? '📤 Départ ST' : selectedDir === 'silicone' ? '🔵 Contrôle silicone' : '📥 Retour ST';
     g('lotBanner').innerHTML = `
         <h3>📦 ${currentLot.ref} — ${TYPE_LABELS[currentLot.type]} — ${dirLabel}</h3>
         <p>${currentLot.operateur} | ${new Date(currentLot.date).toLocaleDateString('fr-FR')} | Affaire ${currentLot.affaire} | OF ${currentLot.of} | Lot : <strong>${currentLot.qt} pièces</strong> | Échantillon : <strong>${currentLot.ech} pièces</strong></p>
@@ -980,8 +1016,9 @@ function resetAll() {
     ['corniere','panier','grainage','petite','deballage','emballage'].forEach(k => {
         g('type-'+k).className = 'type-card';
     });
-    g('dir-depart').className = 'type-card';
-    g('dir-retour').className = 'type-card';
+    g('dir-depart').className  = 'type-card';
+    g('dir-retour').className  = 'type-card';
+    g('dir-silicone').className = 'type-card';
     g('dossierZone').style.opacity = '1';
     g('dossierZone').style.pointerEvents = '';
     g('deballageZone').style.opacity = '1';
@@ -1043,7 +1080,7 @@ function renderTable() {
             <td>${r.affaire||'-'}</td>
             <td>${r.of||'-'}</td>
             <td><strong>${r.ref}</strong></td>
-            <td>${r.direction === 'depart' ? '<span class="badge" style="background:#fff0c0;color:#b37a00;border:1px solid #f5a623">📤 Départ ST</span>' : r.direction === 'retour' ? '<span class="badge" style="background:#d0f4fb;color:#006f87;border:1px solid #00b4d8">📥 Retour ST</span>' : '—'}</td>
+            <td>${r.direction === 'depart' ? '<span class="badge" style="background:#fff0c0;color:#b37a00;border:1px solid #f5a623">📤 Départ ST</span>' : r.direction === 'retour' ? '<span class="badge" style="background:#d0f4fb;color:#006f87;border:1px solid #00b4d8">📥 Retour ST</span>' : r.direction === 'silicone' ? '<span class="badge badge-silicone">🔵 Ctrl silicone</span>' : '—'}</td>
             <td>${typeBadge}</td>
             <td>#${r.pieceNumber}</td>
             <td>${r.qt}</td>
@@ -1206,7 +1243,7 @@ function renderStats() {
         c.innerHTML = '<p style="text-align:center;color:#999;padding:60px;font-size:15px;">Aucune donnée pour le moment.</p>';
         return;
     }
-    const types = ['corniere','panier','grainage','petite'];
+    const types = ['corniere','panier','grainage','petite','deballage','emballage','silicone'];
     let html = '';
 
     // ═══════════════════════════════════════════
@@ -1471,7 +1508,7 @@ function renderStats() {
 function exportExcel() {
     if (!data.length) { alert('Aucune donnée à exporter.'); return; }
     const wb = XLSX.utils.book_new();
-    const types = ['corniere','panier','grainage','petite'];
+    const types = ['corniere','panier','grainage','petite','deballage','emballage','silicone'];
     const COLS = [
         {wch:12},{wch:14},{wch:12},{wch:12},{wch:14},{wch:18},
         {wch:8},{wch:12},{wch:12},{wch:12},{wch:14},
@@ -1555,7 +1592,7 @@ function toRow(r) {
         'N° Affaire':            r.affaire||'',
         'N° OF':                 r.of||'',
         'Référence':             r.ref,
-        'Direction':             r.direction === 'depart' ? 'Départ ST' : r.direction === 'retour' ? 'Retour ST' : '',
+        'Direction':             r.direction === 'depart' ? 'Départ ST' : r.direction === 'retour' ? 'Retour ST' : r.direction === 'silicone' ? 'Contrôle silicone' : '',
         'Type de pièce':         TYPE_LABELS[r.type]||r.type,
         'Pièce N°':              Number(r.pieceNumber),
         'Taille lot':            Number(r.qt),
