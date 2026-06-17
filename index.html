@@ -207,11 +207,26 @@ tr:hover td { background: #f8f0f2; }
 .badge-panier   { background: #e6f0ff; color: #003eaa; }
 .badge-grainage { background: #e6fff0; color: #007a2e; }
 .badge-petite   { background: #fff6e6; color: #aa5500; }
+.badge-plat     { background: #e8f5e9; color: #1b5e20; }
 .badge-deballage{ background: #fff0e6; color: #aa2200; }
 .badge-emballage{ background: #e6f7ff; color: #005b99; }
 .badge-silicone { background: #eef0ff; color: #3b3bcc; border: 1px solid #aab0ff; }
 .badge-complet   { background: #e6fff0; color: #007a2e; border: 1px solid #27ae60; }
 .badge-incomplet { background: #ffe9ec; color: #c0143a; border: 1px solid #e94560; }
+
+.dir-edit-select {
+    padding: 4px 8px;
+    border-radius: 20px;
+    font-size: 11px;
+    font-weight: 700;
+    border: 1px solid #ddd;
+    cursor: pointer;
+    background: #f5f5f5;
+    color: #555;
+    max-width: 150px;
+}
+.dir-edit-select:hover { border-color: #0f3460; }
+.dir-edit-select:focus { outline: none; border-color: #0f3460; box-shadow: 0 0 0 2px rgba(15,52,96,0.1); }
 
 /* STATS */
 .stats-row { display: grid; grid-template-columns: repeat(auto-fit, minmax(160px, 1fr)); gap: 14px; margin-bottom: 22px; }
@@ -423,6 +438,10 @@ tr:hover td { background: #f8f0f2; }
                 <div class="type-card" id="type-petite" onclick="selectType('petite')">
                     <span class="type-icon">🔹</span>
                     <span class="type-name">Petites pièces</span>
+                </div>
+                <div class="type-card" id="type-plat" onclick="selectType('plat')">
+                    <span class="type-icon">▭</span>
+                    <span class="type-name">Pièce à plat</span>
                 </div>
                 <div class="type-card" id="type-deballage" onclick="selectType('deballage')">
                     <span class="type-icon">📦</span>
@@ -654,6 +673,7 @@ tr:hover td { background: #f8f0f2; }
             <option value="panier">Paniers</option>
             <option value="grainage">Pièces grainage</option>
             <option value="petite">Petites pièces</option>
+            <option value="plat">Pièce à plat</option>
             <option value="deballage">Déballage</option>
             <option value="emballage">Emballage</option>
           </select>
@@ -796,6 +816,7 @@ tr:hover td { background: #f8f0f2; }
                 <option value="panier">Paniers</option>
                 <option value="grainage">Grainage</option>
                 <option value="petite">Petites pièces</option>
+                <option value="plat">Pièce à plat</option>
                 <option value="deballage">Déballage</option>
                 <option value="emballage">Emballage</option>
             </select>
@@ -839,6 +860,7 @@ tr:hover td { background: #f8f0f2; }
                         <th>OF</th>
                         <th>Réf.</th>
                         <th>Direction</th>
+                        <th>Gamme (lots)</th>
                         <th>Type pièce</th>
                         <th>Pièce N°</th>
                         <th>Taille lot</th>
@@ -883,10 +905,10 @@ let deballageSaved = false;
 let selectedType = '';
 let selectedDir  = '';
 
-const TYPE_LABELS = { corniere:'Cornières', panier:'Paniers', grainage:'Pièces grainage', petite:'Petites pièces', deballage:'Déballage', emballage:'Emballage', silicone:'Contrôle silicone' };
+const TYPE_LABELS = { corniere:'Cornières', panier:'Paniers', grainage:'Pièces grainage', petite:'Petites pièces', plat:'Pièce à plat', deballage:'Déballage', emballage:'Emballage', silicone:'Contrôle silicone' };
 const TYPE_BADGES = {
     corniere:'badge-corniere', panier:'badge-panier',
-    grainage:'badge-grainage', petite:'badge-petite', deballage:'badge-deballage', emballage:'badge-emballage', silicone:'badge-silicone'
+    grainage:'badge-grainage', petite:'badge-petite', plat:'badge-plat', deballage:'badge-deballage', emballage:'badge-emballage', silicone:'badge-silicone'
 };
 
 // ═══════════════════════════════════════════════
@@ -1177,7 +1199,7 @@ function goTab(id) {
 function selectType(t) {
     selectedType = t;
     document.getElementById('lotType').value = t;
-    ['corniere','panier','grainage','petite','deballage','emballage'].forEach(k => {
+    ['corniere','panier','grainage','petite','plat','deballage','emballage'].forEach(k => {
         document.getElementById('type-'+k).className = 'type-card' + (k===t ? ' selected' : '');
     });
 }
@@ -1463,7 +1485,7 @@ function resetAll() {
     g('lotForm').reset();
     const t = new Date();
     g('lotDate').value = `${t.getFullYear()}-${String(t.getMonth()+1).padStart(2,'0')}-${String(t.getDate()).padStart(2,'0')}`;
-    ['corniere','panier','grainage','petite','deballage','emballage'].forEach(k => {
+    ['corniere','panier','grainage','petite','plat','deballage','emballage'].forEach(k => {
         g('type-'+k).className = 'type-card';
     });
     g('dir-depart').className  = 'type-card';
@@ -1526,13 +1548,13 @@ function renderTable() {
         const statutBadge = (r.statut === 'Incomplet')
             ? `<span class="badge badge-incomplet">⚠️ Incomplet (${r.echReel ?? '?'}/${r.ech})</span>`
             : `<span class="badge badge-complet">✅ Complet</span>`;
-        const dirBadge = r.direction === 'depart'
-            ? '<span class="badge" style="background:#fff0c0;color:#b37a00;border:1px solid #f5a623">📤 Départ ST</span>'
-            : r.direction === 'retour'
-            ? '<span class="badge" style="background:#d0f4fb;color:#006f87;border:1px solid #00b4d8">📥 Retour ST</span>'
-            : r.direction === 'silicone'
-            ? '<span class="badge badge-silicone">🔵 Ctrl silicone</span>'
-            : '—';
+        const realIdx = data.indexOf(r);
+        const dirSelect = isSil
+            ? '<span class="badge badge-silicone" title="Le contrôle silicone a une structure de données différente (P1/P2, comptage) — non modifiable ici">🔵 Ctrl silicone</span>'
+            : `<select class="dir-edit-select" onchange="changeDirection(${realIdx}, this.value)">
+                <option value="depart" ${r.direction==='depart' ? 'selected' : ''}>📤 Départ ST</option>
+                <option value="retour" ${r.direction==='retour' ? 'selected' : ''}>📥 Retour ST</option>
+            </select>`;
         // Colonne ctrl : pour silicone on affiche P1 + P2 détaillés, sinon tCtrl
         const ctrlCell = isSil
             ? `<span title="P1: ${fmt(r.tP1||0)} / P2: ${fmt(r.tP2||0)}">🔧${fmt(r.tP1||0)} + 🔍${fmt(r.tP2||0)}</span>`
@@ -1549,7 +1571,8 @@ function renderTable() {
             <td>${r.affaire||'-'}</td>
             <td>${r.of||'-'}</td>
             <td><strong>${r.ref}</strong></td>
-            <td>${dirBadge}</td>
+            <td>${dirSelect}</td>
+            <td>${isSil && r.nbLotsGamme ? `<strong>${r.nbLotsGamme}</strong> lot${r.nbLotsGamme>1?'s':''}` : '—'}</td>
             <td>${typeBadge}</td>
             <td>#${r.pieceNumber}</td>
             <td>${r.qt}</td>
@@ -1569,6 +1592,15 @@ function renderTable() {
 function deleteRow(i) {
     if (!confirm('Supprimer cette ligne ?')) return;
     data.splice(i,1); save(); renderTable(); renderStats();
+}
+function changeDirection(i, newDir) {
+    if (!data[i]) return;
+    const oldDir = data[i].direction;
+    if (oldDir === newDir) return;
+    data[i].direction = newDir;
+    save();
+    renderTable();
+    renderStats();
 }
 
 // ═══════════════════════════════════════════════
@@ -1597,7 +1629,14 @@ function importExcel(input) {
             // Map colonnes Excel → objet interne
             const TYPE_MAP = {
                 'Cornières': 'corniere', 'Paniers': 'panier',
-                'Pièces grainage': 'grainage', 'Petites pièces': 'petite'
+                'Pièces grainage': 'grainage', 'Petites pièces': 'petite',
+                'Pièce à plat': 'plat',
+                'Déballage': 'deballage', 'Emballage': 'emballage',
+                'Contrôle silicone': 'silicone'
+            };
+            const DIR_MAP = {
+                'Départ ST': 'depart', 'Retour ST': 'retour',
+                'Contrôle silicone': 'silicone'
             };
 
             rows.forEach(row => {
@@ -1620,6 +1659,8 @@ function importExcel(input) {
 
                     const typeLabel = row['Type de pièce'] || '';
                     const typeKey   = TYPE_MAP[typeLabel] || typeLabel.toLowerCase().replace(/[^a-z]/g,'');
+                    const dirLabel  = row['Direction'] || '';
+                    const dirKey    = DIR_MAP[dirLabel] || (dirLabel.toLowerCase().includes('retour') ? 'retour' : dirLabel.toLowerCase().includes('silicone') ? 'silicone' : 'depart');
 
                     // Ne pas dupliquer (même OF + pièce N° + date)
                     const isDup = data.some(d =>
@@ -1637,15 +1678,19 @@ function importExcel(input) {
                         ref:         String(row['Référence'] || ''),
                         qt:          Number(row['Taille lot'] || 0),
                         ech:         Number(row['Taille échantillon'] || 0),
+                        direction:   dirKey,
                         type:        typeKey || 'corniere',
                         pieceNumber: Number(row['Pièce N°'] || 1),
                         tDossier:    Number(row['Tps dossier (min)'] || 0),
+                        tDeballage:  Number(row['Tps déballage (min)'] || 0),
+                        tEmballage:  Number(row['Tps emballage (min)'] || 0),
                         tCtrl:       Number(row['Tps ctrl pièce (min)'] || 0),
                         tRangement:  Number(row['Tps rangement (min)'] || 0),
                         total:       Number(row['Total (min)'] || 0),
                         obs:         String(row['Observations'] || ''),
                         statut:      String(row['Statut'] || 'Complet'),
                         echReel:     Number(row['Échantillon réel'] || row['Taille échantillon'] || 0),
+                        nbLotsGamme: Number(row['Gamme (nb lots)'] || 0) || undefined,
                     };
                     data.push(entry);
                     imported++;
@@ -1712,7 +1757,7 @@ function renderStats() {
         c.innerHTML = '<p style="text-align:center;color:#999;padding:60px;font-size:15px;">Aucune donnée pour le moment.</p>';
         return;
     }
-    const types = ['corniere','panier','grainage','petite','deballage','emballage','silicone'];
+    const types = ['corniere','panier','grainage','petite','plat','deballage','emballage','silicone'];
     let html = '';
 
     // ═══════════════════════════════════════════
@@ -1749,35 +1794,103 @@ function renderStats() {
     });
     const ofList = Object.values(ofMap).sort((a,b)=>a.of.localeCompare(b.of));
 
-    // ── 1. VUE GLOBALE ──
+    // ── 1. VUE PAR DIRECTION ──
+    const DIR_LABELS = { depart: '📤 Départ ST', retour: '📥 Retour ST', silicone: '🔵 Contrôle silicone' };
+    const dirKeys = ['depart','retour','silicone'];
     const lots    = ofList.length;
-    const totalPiecesEch = data.length;
-    const avgCtrlPiece   = data.reduce((s,r)=>s+r.tCtrl,0) / data.length;
-    const totalDossier   = data.reduce((s,r)=>s+(r.tDossier||0),0);
-    const totalRangement = data.reduce((s,r)=>s+(r.tRangement||0),0);
-    const totalDeballage = data.reduce((s,r)=>s+(r.tDeballage||0),0);
-    const totalEmballage = data.reduce((s,r)=>s+(r.tEmballage||0),0);
     const lotsIncomplets = new Set(data.filter(r=>r.statut==='Incomplet').map(r=>r.ref+'|'+r.of)).size;
-    // Temps moyen global d'un OF (dossier + ctrl estimé sur lot + rangement)
-    const avgTotalOF = ofList.reduce((s,o)=>s+o.totalOF,0) / ofList.length;
-    const avgDossierOF   = ofList.reduce((s,o)=>s+o.tDossier,0) / ofList.length;
-    const avgRangementOF = ofList.reduce((s,o)=>s+o.tRangement,0) / ofList.length;
-    const avgDeballageOF = ofList.reduce((s,o)=>s+o.tDeballage,0) / ofList.length;
-    const avgEmballageOF = ofList.reduce((s,o)=>s+o.tEmballage,0) / ofList.length;
 
-    html += `<div class="card"><h2>📊 Vue globale</h2>
+    html += `<div class="card"><h2>🧭 Vue par direction</h2>
         <div class="stats-row">
-            <div class="stat-box"><h4>Pièces mesurées</h4><div class="val">${totalPiecesEch}</div></div>
             <div class="stat-box amber"><h4>Lots (OF)</h4><div class="val">${lots}</div></div>
-            <div class="stat-box teal"><h4>Tps ctrl moyen / pièce</h4><div class="val-sm">${fmt(avgCtrlPiece)}</div></div>
-            <div class="stat-box green"><h4>Tps moyen global / OF</h4><div class="val-sm">${fmt(avgTotalOF)}</div></div>
-            <div class="stat-box purple"><h4>Tps moyen dossier / OF</h4><div class="val-sm">${fmt(avgDossierOF)}</div></div>
-            <div class="stat-box amber"><h4>Tps moyen rangement / OF</h4><div class="val-sm">${fmt(avgRangementOF)}</div></div>
-            <div class="stat-box red"><h4>Tps moyen déballage / OF</h4><div class="val-sm">${fmt(avgDeballageOF)}</div></div>
-            <div class="stat-box teal"><h4>Tps moyen emballage / OF</h4><div class="val-sm">${fmt(avgEmballageOF)}</div></div>
+            <div class="stat-box red"><h4>Lots incomplets</h4><div class="val">${lotsIncomplets}</div></div>
         </div>
-        <p style="font-size:11px;color:#999;margin-top:8px;">* Les temps ctrl sont estimés sur la taille du lot entier (moyenne échantillon × qt lot)</p>
+        <table class="stats-tbl">
+        <thead><tr>
+            <th>Direction</th>
+            <th>Lignes / pièces</th>
+            <th>OF concernés</th>
+            <th>Gammes (silicone)</th>
+            <th>Tps moyen / pièce (ctrl)</th>
+            <th>Tps moyen dossier / OF</th>
+            <th>Tps moyen rangement / OF</th>
+            <th>Tps moyen déballage / OF</th>
+            <th>Tps moyen emballage / OF</th>
+        </tr></thead>
+        <tbody>`;
+    dirKeys.forEach(dk => {
+        const rows = data.filter(r => r.direction === dk);
+        if (!rows.length) return;
+        const ofsDir = ofList.filter(of => data.some(r => r.of === of.of && r.direction === dk));
+        const avgCtrlD = rows.reduce((s,r)=>s+(r.tCtrl||0),0) / rows.length;
+        const avgDossD = ofsDir.length ? ofsDir.reduce((s,o)=>s+o.tDossier,0) / ofsDir.length : 0;
+        const avgRangD = ofsDir.length ? ofsDir.reduce((s,o)=>s+o.tRangement,0) / ofsDir.length : 0;
+        const avgDebD  = ofsDir.length ? ofsDir.reduce((s,o)=>s+o.tDeballage,0) / ofsDir.length : 0;
+        const avgEmbD  = ofsDir.length ? ofsDir.reduce((s,o)=>s+o.tEmballage,0) / ofsDir.length : 0;
+        let gammeCell = '—';
+        if (dk === 'silicone') {
+            const gammesAffaires = new Set(rows.map(r=>r.gammeAffaire || r.affaire));
+            const nbGammes = gammesAffaires.size;
+            const avgLotsParGamme = rows.length ? (rows.reduce((s,r)=>s+(r.nbLotsGamme||0),0) / rows.length) : 0;
+            gammeCell = `${nbGammes} gamme${nbGammes>1?'s':''} <span style="font-size:10px;color:#aaa;">(moy. ${avgLotsParGamme.toFixed(1)} lots/gamme)</span>`;
+        }
+        html += `<tr>
+            <td><strong>${DIR_LABELS[dk]}</strong></td>
+            <td>${rows.length}</td>
+            <td>${ofsDir.length}</td>
+            <td>${gammeCell}</td>
+            <td>${fmt(avgCtrlD)}</td>
+            <td>${avgDossD > 0 ? fmt(avgDossD) : '—'}</td>
+            <td>${avgRangD > 0 ? fmt(avgRangD) : '—'}</td>
+            <td>${avgDebD > 0 ? fmt(avgDebD) : '—'}</td>
+            <td>${avgEmbD > 0 ? fmt(avgEmbD) : '—'}</td>
+        </tr>`;
+    });
+    html += `</tbody></table>
+        <p style="font-size:11px;color:#999;margin-top:8px;">* Moyennes calculées sur les OF / lignes appartenant à chaque direction</p>
     </div>`;
+
+    // ── 2. TEMPS DE CONTRÔLE PAR TYPE DE PIÈCE ──
+    html += `<div class="card"><h2>🔍 Temps de contrôle par type de pièce</h2>
+    <p style="font-size:12px;color:#888;margin-bottom:14px;">Temps de contrôle unitaire mesuré sur l'échantillon — extrapolé à la taille moyenne du lot pour ce type</p>
+    <table class="stats-tbl">
+        <thead><tr>
+            <th>Type de pièce</th>
+            <th>Pièces mesurées</th>
+            <th>Tps moyen / pièce</th>
+            <th>Tps min</th>
+            <th>Tps max</th>
+            <th>Tps estimé / lot</th>
+        </tr></thead>
+        <tbody>`;
+    types.forEach(type => {
+        const rows = data.filter(r=>r.type===type);
+        if (!rows.length) return;
+        const avg = rows.reduce((s,r)=>s+r.tCtrl,0)/rows.length;
+        const mn  = Math.min(...rows.map(r=>r.tCtrl));
+        const mx  = Math.max(...rows.map(r=>r.tCtrl));
+        const ofsType = ofList.filter(of=>of.type===type);
+        const avgQtType = ofsType.length ? ofsType.reduce((s,of)=>s+of.qt,0)/ofsType.length : 0;
+        html += `<tr>
+            <td><span class="badge ${TYPE_BADGES[type]}">${TYPE_LABELS[type]}</span></td>
+            <td>${rows.length}</td>
+            <td><strong>${fmt(avg)}</strong></td>
+            <td>${fmt(mn)}</td>
+            <td>${fmt(mx)}</td>
+            <td>${fmt(avg*avgQtType)} <span style="font-size:10px;color:#aaa;">(${fmt(avg)}×${Math.round(avgQtType)})</span></td>
+        </tr>`;
+    });
+    const gAvg = data.reduce((s,r)=>s+r.tCtrl,0)/data.length;
+    const gAvgQt = ofList.length ? ofList.reduce((s,of)=>s+of.qt,0)/ofList.length : 0;
+    html += `<tr class="total-row">
+        <td>MOYENNE / GLOBAL</td>
+        <td>${data.length}</td>
+        <td>${fmt(gAvg)}</td>
+        <td>${fmt(Math.min(...data.map(r=>r.tCtrl)))}</td>
+        <td>${fmt(Math.max(...data.map(r=>r.tCtrl)))}</td>
+        <td>${fmt(gAvg*gAvgQt)} <span style="font-size:10px;color:#bbb;">(${fmt(gAvg)}×${Math.round(gAvgQt)})</span></td>
+    </tr>`;
+    html += `</tbody></table></div>`;
 
     const totDoss    = ofList.reduce((s,o)=>s+o.tDossier,0);
     const totCtrlLot = ofList.reduce((s,o)=>s+o.tCtrlLot,0);
@@ -1785,7 +1898,7 @@ function renderStats() {
     const totDebStat = ofList.reduce((s,o)=>s+o.tDeballage,0);
     const totEmbStat = ofList.reduce((s,o)=>s+o.tEmballage,0);
 
-    // ── 2. DÉBALLAGE / EMBALLAGE PAR OF ──
+    // ── 3. DÉBALLAGE / EMBALLAGE PAR OF ──
     html += `<div class="card"><h2>📦📫 Déballage / Emballage par OF</h2>
     <p style="font-size:12px;color:#888;margin-bottom:14px;">Temps de déballage et d'emballage cumulés par OF</p>
     <table class="stats-tbl">
@@ -1828,7 +1941,7 @@ function renderStats() {
     </tr>`;
     html += `</tbody></table></div>`;
 
-    // ── 3. TEMPS DE DOSSIER (préparation dossier fab, sans pièces) ──
+    // ── 4. TEMPS DE DOSSIER (préparation dossier fab, sans pièces) ──
     html += `<div class="card"><h2>📁 Temps de dossier par OF</h2>
     <p style="font-size:12px;color:#888;margin-bottom:14px;">Temps de préparation du dossier de fabrication uniquement (saisi une seule fois par OF)</p>
     <table class="stats-tbl">
@@ -1853,48 +1966,6 @@ function renderStats() {
     html += `<tr class="total-row">
         <td colspan="4">MOYENNE</td>
         <td>${fmt(avgDoss)}</td>
-    </tr>`;
-    html += `</tbody></table></div>`;
-
-    // ── 4. TEMPS PAR PIÈCE (ctrl unitaire, basé sur l'échantillon mesuré) ──
-    html += `<div class="card"><h2>🔍 Temps de contrôle par pièce</h2>
-    <p style="font-size:12px;color:#888;margin-bottom:14px;">Temps de contrôle unitaire mesuré sur l'échantillon — extrapolé à la taille moyenne du lot pour ce type</p>
-    <table class="stats-tbl">
-        <thead><tr>
-            <th>Type de pièce</th>
-            <th>Pièces mesurées</th>
-            <th>Tps moyen / pièce</th>
-            <th>Tps min</th>
-            <th>Tps max</th>
-            <th>Tps estimé / lot</th>
-        </tr></thead>
-        <tbody>`;
-    types.forEach(type => {
-        const rows = data.filter(r=>r.type===type);
-        if (!rows.length) return;
-        const avg = rows.reduce((s,r)=>s+r.tCtrl,0)/rows.length;
-        const mn  = Math.min(...rows.map(r=>r.tCtrl));
-        const mx  = Math.max(...rows.map(r=>r.tCtrl));
-        const ofsType = ofList.filter(of=>of.type===type);
-        const avgQtType = ofsType.length ? ofsType.reduce((s,of)=>s+of.qt,0)/ofsType.length : 0;
-        html += `<tr>
-            <td><span class="badge ${TYPE_BADGES[type]}">${TYPE_LABELS[type]}</span></td>
-            <td>${rows.length}</td>
-            <td><strong>${fmt(avg)}</strong></td>
-            <td>${fmt(mn)}</td>
-            <td>${fmt(mx)}</td>
-            <td>${fmt(avg*avgQtType)} <span style="font-size:10px;color:#aaa;">(${fmt(avg)}×${Math.round(avgQtType)})</span></td>
-        </tr>`;
-    });
-    const gAvg = data.reduce((s,r)=>s+r.tCtrl,0)/data.length;
-    const gAvgQt = ofList.length ? ofList.reduce((s,of)=>s+of.qt,0)/ofList.length : 0;
-    html += `<tr class="total-row">
-        <td>MOYENNE / GLOBAL</td>
-        <td>${data.length}</td>
-        <td>${fmt(gAvg)}</td>
-        <td>${fmt(Math.min(...data.map(r=>r.tCtrl)))}</td>
-        <td>${fmt(Math.max(...data.map(r=>r.tCtrl)))}</td>
-        <td>${fmt(gAvg*gAvgQt)} <span style="font-size:10px;color:#bbb;">(${fmt(gAvg)}×${Math.round(gAvgQt)})</span></td>
     </tr>`;
     html += `</tbody></table></div>`;
 
@@ -1977,7 +2048,7 @@ function renderStats() {
 function exportExcel() {
     if (!data.length) { alert('Aucune donnée à exporter.'); return; }
     const wb = XLSX.utils.book_new();
-    const types = ['corniere','panier','grainage','petite','deballage','emballage','silicone'];
+    const types = ['corniere','panier','grainage','petite','plat','deballage','emballage','silicone'];
     const COLS = [
         {wch:12},{wch:14},{wch:12},{wch:12},{wch:14},{wch:18},
         {wch:8},{wch:12},{wch:12},{wch:12},{wch:14},
@@ -2062,6 +2133,7 @@ function toRow(r) {
         'N° OF':                 r.of||'',
         'Référence':             r.ref,
         'Direction':             r.direction === 'depart' ? 'Départ ST' : r.direction === 'retour' ? 'Retour ST' : r.direction === 'silicone' ? 'Contrôle silicone' : '',
+        'Gamme (nb lots)':       r.nbLotsGamme || '',
         'Type de pièce':         TYPE_LABELS[r.type]||r.type,
         'Pièce N°':              Number(r.pieceNumber),
         'Taille lot':            Number(r.qt),
