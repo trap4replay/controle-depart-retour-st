@@ -1140,24 +1140,22 @@ function selectDir(d) {
 // ═══════════════════════════════════════════════
 // AUTO-FORMAT AFFAIRE / OF
 // ═══════════════════════════════════════════════
-function fmtCode(raw, prefix, totalLen) {
-    // Enlever le préfixe s'il est déjà là (insensible à la casse)
+function fmtCode(raw, prefix, digits) {
     let val = raw.trim().toUpperCase();
     if (val.startsWith(prefix)) val = val.slice(prefix.length);
-    // Garder uniquement les chiffres
     val = val.replace(/\D/g, '');
-    if (!val) return raw.trim(); // rien à formater
-    // Pad à gauche pour atteindre totalLen - prefix.length
-    const padLen = totalLen - prefix.length;
-    return prefix + val.padStart(padLen, '0');
+    if (!val) return raw.trim();
+    // Toujours exactement `digits` chiffres : on tronque à droite si trop long
+    if (val.length > digits) val = val.slice(-digits);
+    return prefix + val.padStart(digits, '0');
 }
 function fmtAffaire(el) {
-    const fmt = fmtCode(el.value, 'A', 8); // A0015925 = 8 chars
-    if (fmt !== el.value) el.value = fmt;
+    const f = fmtCode(el.value, 'A', 7);   // A + 7 chiffres = A0015925
+    if (f !== el.value) el.value = f;
 }
 function fmtOF(el) {
-    const fmt = fmtCode(el.value, 'OF', 9); // OF0015925 = 9 chars
-    if (fmt !== el.value) el.value = fmt;
+    const f = fmtCode(el.value, 'OF', 7);  // OF + 7 chiffres = OF0015925
+    if (f !== el.value) el.value = f;
 }
 
 // ═══════════════════════════════════════════════
