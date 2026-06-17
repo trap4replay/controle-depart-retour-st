@@ -1848,6 +1848,7 @@ function renderStats() {
         const key = r.of || '—';
         if (!ofMap[key]) ofMap[key] = {
             of: key, affaire: r.affaire, ref: r.ref, type: r.type,
+            direction: r.direction,
             qt: r.qt || 0,
             tDossier: 0, tRangement: 0, tDeballage: 0, tEmballage: 0,
             echPieces: 0,
@@ -1863,10 +1864,13 @@ function renderStats() {
         if ((r.qt||0) > ofMap[key].qt) ofMap[key].qt = r.qt;
     });
 
-    // Pour chaque OF : tCtrlLot = moyenne ctrl par pièce × taille du lot
+    // Pour chaque OF : tCtrlLot = somme mesurée (silicone : 2 pièces fixes, pas d'extrapolation)
+    //                            = avgCtrlPiece × qt pour les autres directions
     Object.values(ofMap).forEach(of => {
         of.avgCtrlPiece = of.echPieces > 0 ? of.tCtrlEch / of.echPieces : 0;
-        of.tCtrlLot     = of.avgCtrlPiece * of.qt;
+        of.tCtrlLot     = of.direction === 'silicone'
+            ? of.tCtrlEch                      // somme réelle des 2 pièces mesurées
+            : of.avgCtrlPiece * of.qt;         // extrapolation sur taille de lot
         of.totalOF      = of.tDossier + of.tCtrlLot + of.tRangement + of.tDeballage + of.tEmballage;
     });
     const ofList = Object.values(ofMap).sort((a,b)=>a.of.localeCompare(b.of));
@@ -1906,12 +1910,15 @@ function renderStats() {
         const avgEmbD  = ofsDir.length ? ofsDir.reduce((s,o)=>s+o.tEmballage,0) / ofsDir.length : 0;
         // Tps total moyen ctrl/OF = moyenne par OF de (avgCtrlPiece × qt)
         const avgCtrlTotOF = ofsDir.length ? ofsDir.reduce((s,o)=>s+o.tCtrlLot,0) / ofsDir.length : 0;
+        const ctrlDetail = dk === 'silicone'
+            ? `<span style="font-size:10px;color:#aaa;">(somme 2 pièces mesurées)</span>`
+            : `<span style="font-size:10px;color:#aaa;">(${fmt(avgCtrlD)}×moy. lot)</span>`;
         html += `<tr>
             <td><strong>${DIR_LABELS[dk]}</strong></td>
             <td>${rows.length}</td>
             <td>${ofsDir.length}</td>
             <td>${fmt(avgCtrlD)}</td>
-            <td>${avgCtrlTotOF > 0 ? fmt(avgCtrlTotOF) + ` <span style="font-size:10px;color:#aaa;">(${fmt(avgCtrlD)}×moy. lot)</span>` : '—'}</td>
+            <td>${avgCtrlTotOF > 0 ? fmt(avgCtrlTotOF) + ` ${ctrlDetail}` : '—'}</td>
             <td>${avgDossD > 0 ? fmt(avgDossD) : '—'}</td>
             <td>${avgRangD > 0 ? fmt(avgRangD) : '—'}</td>
             <td>${avgDebD > 0 ? fmt(avgDebD) : '—'}</td>
