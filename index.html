@@ -1608,11 +1608,10 @@ function renderTable() {
         const statutBadge = (r.statut === 'Incomplet')
             ? `<span class="badge badge-incomplet">⚠️ Incomplet (${r.echReel ?? '?'}/${r.ech})</span>`
             : `<span class="badge badge-complet">✅ Complet</span>`;
-        const dirSelect = isSil
-            ? '<span class="badge badge-silicone" title="Le contrôle silicone a une structure de données différente (P1/P2, comptage) — non modifiable ici">🔵 Ctrl silicone</span>'
-            : `<select class="dir-edit-select" onchange="changeDirection(${realIdx}, this.value)">
-                <option value="depart" ${r.direction==='depart' ? 'selected' : ''}>📤 Départ ST</option>
-                <option value="retour" ${r.direction==='retour' ? 'selected' : ''}>📥 Retour ST</option>
+        const dirSelect = `<select class="dir-edit-select" onchange="changeDirection(${realIdx}, this.value)">
+                <option value="depart"   ${r.direction==='depart'   ? 'selected' : ''}>📤 Départ ST</option>
+                <option value="retour"   ${r.direction==='retour'   ? 'selected' : ''}>📥 Retour ST</option>
+                <option value="silicone" ${r.direction==='silicone' ? 'selected' : ''}>🔵 Ctrl silicone</option>
             </select>`;
         // Colonne ctrl : pour silicone on affiche P1 + P2 détaillés, sinon tCtrl
         const ctrlCell = isSil
@@ -1656,6 +1655,16 @@ function changeDirection(i, newDir) {
     if (!data[i]) return;
     const oldDir = data[i].direction;
     if (oldDir === newDir) return;
+    const wasSil = oldDir === 'silicone';
+    const willBeSil = newDir === 'silicone';
+    if (wasSil !== willBeSil) {
+        const ok = confirm(
+            'Le contrôle silicone utilise une structure de temps différente (P1/P2 + comptage) par rapport à Départ/Retour ST (contrôle simple).\n\n' +
+            'Changer la direction ne convertit pas les temps déjà saisis — certaines colonnes pourront apparaître vides ou incohérentes.\n\n' +
+            'Continuer le changement ?'
+        );
+        if (!ok) { renderTable(); return; }
+    }
     data[i].direction = newDir;
     save();
     renderTable();
