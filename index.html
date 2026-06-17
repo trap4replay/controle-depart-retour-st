@@ -227,6 +227,12 @@ tr:hover td { background: #f8f0f2; }
 }
 .dir-edit-select:hover { border-color: #0f3460; }
 .dir-edit-select:focus { outline: none; border-color: #0f3460; box-shadow: 0 0 0 2px rgba(15,52,96,0.1); }
+.dir-edit-select option {
+    background: #ffffff;
+    color: #222;
+    font-weight: 600;
+    padding: 6px;
+}
 
 /* STATS */
 .stats-row { display: grid; grid-template-columns: repeat(auto-fit, minmax(160px, 1fr)); gap: 14px; margin-bottom: 22px; }
@@ -1589,11 +1595,19 @@ function renderTable() {
 
     filtered.forEach((r) => {
         const isSil = r.direction === 'silicone';
-        const typeBadge = `<span class="badge ${TYPE_BADGES[r.type]||''}">${TYPE_LABELS[r.type]||r.type}</span>`;
+        const realIdx = data.indexOf(r);
+        const typeSelect = `<select class="dir-edit-select" onchange="changeType(${realIdx}, this.value)">
+            <option value="corniere"  ${r.type==='corniere'  ? 'selected' : ''}>📐 Cornières</option>
+            <option value="panier"    ${r.type==='panier'    ? 'selected' : ''}>🧺 Paniers</option>
+            <option value="grainage"  ${r.type==='grainage'  ? 'selected' : ''}>🔩 Pièces grainage</option>
+            <option value="petite"    ${r.type==='petite'    ? 'selected' : ''}>🔹 Petites pièces</option>
+            <option value="plat"      ${r.type==='plat'      ? 'selected' : ''}>▭ Pièce à plat</option>
+            <option value="deballage" ${r.type==='deballage' ? 'selected' : ''}>📦 Déballage</option>
+            <option value="emballage" ${r.type==='emballage' ? 'selected' : ''}>📫 Emballage</option>
+        </select>`;
         const statutBadge = (r.statut === 'Incomplet')
             ? `<span class="badge badge-incomplet">⚠️ Incomplet (${r.echReel ?? '?'}/${r.ech})</span>`
             : `<span class="badge badge-complet">✅ Complet</span>`;
-        const realIdx = data.indexOf(r);
         const dirSelect = isSil
             ? '<span class="badge badge-silicone" title="Le contrôle silicone a une structure de données différente (P1/P2, comptage) — non modifiable ici">🔵 Ctrl silicone</span>'
             : `<select class="dir-edit-select" onchange="changeDirection(${realIdx}, this.value)">
@@ -1618,7 +1632,7 @@ function renderTable() {
             <td><strong>${r.ref}</strong></td>
             <td>${dirSelect}</td>
             <td>${isSil && r.nbLotsGamme ? `<strong>${r.nbLotsGamme}</strong> lot${r.nbLotsGamme>1?'s':''} <span title="${getGammeSummary(r.gammeAffaire || r.affaire)}" style="cursor:help;color:#aaa;">ℹ️</span>` : '—'}</td>
-            <td>${typeBadge}</td>
+            <td>${typeSelect}</td>
             <td>#${r.pieceNumber}</td>
             <td>${r.qt}</td>
             <td>${r.ech||'-'}</td>
@@ -1643,6 +1657,15 @@ function changeDirection(i, newDir) {
     const oldDir = data[i].direction;
     if (oldDir === newDir) return;
     data[i].direction = newDir;
+    save();
+    renderTable();
+    renderStats();
+}
+function changeType(i, newType) {
+    if (!data[i]) return;
+    const oldType = data[i].type;
+    if (oldType === newType) return;
+    data[i].type = newType;
     save();
     renderTable();
     renderStats();
@@ -1733,8 +1756,8 @@ function importExcel(input) {
                         tRangement:  Number(row['Tps rangement (min)'] || 0),
                         total:       Number(row['Total (min)'] || 0),
                         obs:         String(row['Observations'] || ''),
-                        statut:      String(row['Statut'] || 'Complet'),
-                        echReel:     Number(row['Échantillon réel'] || row['Taille échantillon'] || 0),
+                        statut:      'Complet',
+                        echReel:     Number(row['Taille échantillon'] || 0),
                         nbLotsGamme: Number(row['Gamme (nb lots)'] || 0) || undefined,
                     };
                     data.push(entry);
@@ -2218,8 +2241,6 @@ function toRow(r) {
         'Pièce N°':              Number(r.pieceNumber),
         'Taille lot':            Number(r.qt),
         'Taille échantillon':    Number(r.ech||0),
-        'Échantillon réel':      Number(r.echReel ?? r.ech ?? 0),
-        'Statut':                r.statut || 'Complet',
         'Tps dossier (min)':     r.tDossier > 0 ? Number(r.tDossier.toFixed(2)) : 0,
         'Tps déballage (min)':   (r.tDeballage||0) > 0 ? Number((r.tDeballage).toFixed(2)) : 0,
         'Tps emballage (min)':   (r.tEmballage||0) > 0 ? Number((r.tEmballage).toFixed(2)) : 0,
