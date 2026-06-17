@@ -680,7 +680,11 @@ tr:hover td { background: #f8f0f2; }
         </div>
         <div class="fgroup">
           <label>Taille du lot *</label>
-          <input type="number" id="sil-qt" placeholder="Ex: 15" min="1" required>
+          <input type="number" id="sil-qt" placeholder="Ex: 10" min="1" required>
+        </div>
+        <div class="fgroup">
+          <label>Échantillon contrôlé *</label>
+          <input type="number" id="sil-ech" placeholder="Ex: 2" min="1" value="2" required>
         </div>
       </div>
       <div id="sil-lotErrors" style="color:#e94560;font-size:13px;margin-bottom:12px;display:none;"></div>
@@ -765,7 +769,7 @@ tr:hover td { background: #f8f0f2; }
       <div style="overflow-x:auto;">
         <table>
           <thead><tr>
-            <th>Lot</th><th>OF</th><th>Réf.</th><th>Type</th><th>Qt</th>
+            <th>Lot</th><th>OF</th><th>Réf.</th><th>Type</th><th>Qt lot</th><th>Éch.</th>
             <th>🔧 P1 (prog+ctrl)</th><th>🔍 P2 (ctrl)</th><th>🧮 Comptage</th><th>Total</th><th>Obs.</th>
           </tr></thead>
           <tbody id="sil-liveTbody"></tbody>
@@ -978,12 +982,12 @@ function silSummaryByType() {
     if (!silLots.length) return '';
     const byType = {};
     silLots.forEach(l => {
-        const key = l.type + '|' + l.qt;
-        if (!byType[key]) byType[key] = { type: l.type, qt: l.qt, count: 0 };
+        const key = l.type + '|' + l.qt + '|' + l.ech;
+        if (!byType[key]) byType[key] = { type: l.type, qt: l.qt, ech: l.ech, count: 0 };
         byType[key].count++;
     });
     const parts = Object.values(byType).map(g =>
-        `${g.count} lot${g.count>1?'s':''} ${TYPE_LABELS[g.type]||g.type} de ${g.qt} pièces chacun`
+        `${g.count} lot${g.count>1?'s':''} ${TYPE_LABELS[g.type]||g.type} de ${g.qt} pièces (éch. ${g.ech}/lot)`
     );
     return parts.join(' — ');
 }
@@ -1021,6 +1025,7 @@ function silRenderLiveTable() {
         <td>${l.ref}</td>
         <td><span class="badge ${TYPE_BADGES[l.type]||''}">${TYPE_LABELS[l.type]||l.type}</span></td>
         <td>${l.qt}</td>
+        <td>${l.ech}</td>
         <td>${fmt(l.tP1)}</td>
         <td>${fmt(l.tP2)}</td>
         <td>${fmt(l.tComptage)} ${l.nbComptees > 0 ? '('+l.nbComptees+' pcs)' : ''}</td>
@@ -1055,7 +1060,7 @@ document.getElementById('sil-gammeForm').addEventListener('submit', function(e) 
 function silStartLots() {
     silGamme.tDossierOuv = getC('sil_dossierOuv');
     // Réinitialiser les champs du lot
-    g('sil-of').value=''; g('sil-ref').value=''; g('sil-type').value=''; g('sil-qt').value='';
+    g('sil-of').value=''; g('sil-ref').value=''; g('sil-type').value=''; g('sil-qt').value=''; g('sil-ech').value='2';
     g('sil-obs').value=''; g('sil-nbComptees').value='';
     silSetStep('lotInfo');
 }
@@ -1066,6 +1071,8 @@ function silStartPiece1() {
     if (!g('sil-ref').value.trim()) err.push('Référence requise');
     if (!g('sil-type').value)       err.push('Type de pièce requis');
     if (!g('sil-qt').value || parseInt(g('sil-qt').value) < 1) err.push('Taille lot requise');
+    if (!g('sil-ech').value || parseInt(g('sil-ech').value) < 1) err.push('Échantillon requis');
+    if (parseInt(g('sil-ech').value) > parseInt(g('sil-qt').value)) err.push('L\'échantillon ne peut pas dépasser la taille du lot');
     if (err.length) { g('sil-lotErrors').textContent='⚠️ '+err.join(' — '); g('sil-lotErrors').style.display='block'; return; }
     g('sil-lotErrors').style.display='none';
     silCurLot = {
@@ -1073,6 +1080,7 @@ function silStartPiece1() {
         ref:  g('sil-ref').value.trim(),
         type: g('sil-type').value,
         qt:   parseInt(g('sil-qt').value),
+        ech:  parseInt(g('sil-ech').value),
     };
     silSetStep('p1');
 }
@@ -1080,21 +1088,21 @@ function silStartPiece1() {
 function silDonePiece1() {
     silCurLot.tP1 = getC('sil_p1');
     // Mettre à jour le label comptage
-    const restant = Math.max(0, silCurLot.qt - 2);
-    g('sil-comptageLabel').textContent = `${restant} pièce(s) restante(s) à compter (lot de ${silCurLot.qt} − 2 contrôlées)`;
+    const restant = Math.max(0, silCurLot.qt - silCurLot.ech);
+    g('sil-comptageLabel').textContent = `${restant} pièce(s) restante(s) à compter (lot de ${silCurLot.qt} − ${silCurLot.ech} contrôlées)`;
     silSetStep('p2');
 }
 
 function silDonePiece2() {
     silCurLot.tP2 = getC('sil_p2');
-    const restant = Math.max(0, silCurLot.qt - 2);
-    g('sil-comptageLabel').textContent = `${restant} pièce(s) restante(s) à compter (lot de ${silCurLot.qt} − 2 contrôlées)`;
+    const restant = Math.max(0, silCurLot.qt - silCurLot.ech);
+    g('sil-comptageLabel').textContent = `${restant} pièce(s) restante(s) à compter (lot de ${silCurLot.qt} − ${silCurLot.ech} contrôlées)`;
     silSetStep('comptage');
 }
 
 function silDoneLot() {
     const tCpt = getC('sil_cpt');
-    const nbC  = parseInt(g('sil-nbComptees').value) || Math.max(0, silCurLot.qt - 2);
+    const nbC  = parseInt(g('sil-nbComptees').value) || Math.max(0, silCurLot.qt - silCurLot.ech);
     const obs  = g('sil-obs').value.trim();
     silCurLot.tComptage  = tCpt;
     silCurLot.nbComptees = nbC;
@@ -1108,7 +1116,7 @@ function silDoneLot() {
         silSetStep('dossierClo');
     } else {
         // Lot suivant
-        g('sil-of').value=''; g('sil-ref').value=''; g('sil-type').value=''; g('sil-qt').value='';
+        g('sil-of').value=''; g('sil-ref').value=''; g('sil-type').value=''; g('sil-qt').value=''; g('sil-ech').value='2';
         g('sil-obs').value=''; g('sil-nbComptees').value='';
         silSetStep('lotInfo');
     }
@@ -1134,8 +1142,8 @@ function silFinishGamme() {
             of:          lot.of,
             ref:         lot.ref,
             qt:          lot.qt,
-            ech:         2,           // 2 pièces contrôlées + comptage
-            echReel:     2,
+            ech:         lot.ech,        // échantillon réellement contrôlé
+            echReel:     lot.ech,
             direction:   'silicone',
             type:        lot.type,
             pieceNumber: i + 1,
@@ -1568,12 +1576,12 @@ function renderTable() {
         const linesOfGamme = data.filter(d => d.direction === 'silicone' && (d.gammeAffaire || d.affaire) === gammeKey);
         const byType = {};
         linesOfGamme.forEach(l => {
-            const key = l.type + '|' + l.qt;
-            if (!byType[key]) byType[key] = { type: l.type, qt: l.qt, count: 0 };
+            const key = l.type + '|' + l.qt + '|' + (l.ech||l.echReel||0);
+            if (!byType[key]) byType[key] = { type: l.type, qt: l.qt, ech: l.ech||l.echReel||0, count: 0 };
             byType[key].count++;
         });
         const summary = Object.values(byType)
-            .map(gp => `${gp.count} lot${gp.count>1?'s':''} ${TYPE_LABELS[gp.type]||gp.type} de ${gp.qt} pièces`)
+            .map(gp => `${gp.count} lot${gp.count>1?'s':''} ${TYPE_LABELS[gp.type]||gp.type} de ${gp.qt} pièces (éch. ${gp.ech}/lot)`)
             .join(' — ');
         gammeSummaryCache[gammeKey] = summary;
         return summary;
@@ -1894,8 +1902,8 @@ function renderStats() {
         silRows.forEach(r => {
             const gk = r.gammeAffaire || r.affaire;
             if (!byGamme[gk]) byGamme[gk] = { affaire: gk, nbLots: r.nbLotsGamme || 0, types: {} };
-            const tk = r.type + '|' + r.qt;
-            if (!byGamme[gk].types[tk]) byGamme[gk].types[tk] = { type: r.type, qt: r.qt, count: 0 };
+            const tk = r.type + '|' + r.qt + '|' + (r.ech||r.echReel||0);
+            if (!byGamme[gk].types[tk]) byGamme[gk].types[tk] = { type: r.type, qt: r.qt, ech: r.ech||r.echReel||0, count: 0 };
             byGamme[gk].types[tk].count++;
         });
         html += `<div class="card"><h2>🔵 Détail des gammes silicone par type de pièce</h2>
@@ -1904,16 +1912,19 @@ function renderStats() {
             <th>Affaire (gamme)</th>
             <th>Nb lots déclaré</th>
             <th>Détail par type de pièce</th>
+            <th>Total pièces (lot × qt)</th>
         </tr></thead>
         <tbody>`;
         Object.values(byGamme).forEach(g => {
             const detail = Object.values(g.types)
-                .map(t => `${t.count} lot${t.count>1?'s':''} ${TYPE_LABELS[t.type]||t.type} de ${t.qt} pièces`)
+                .map(t => `${t.count} lot${t.count>1?'s':''} ${TYPE_LABELS[t.type]||t.type} de ${t.qt} pièces (éch. ${t.ech}/lot)`)
                 .join(' — ');
+            const totalPieces = Object.values(g.types).reduce((s,t)=>s+(t.count*t.qt),0);
             html += `<tr>
                 <td><strong>${g.affaire}</strong></td>
                 <td>${g.nbLots}</td>
                 <td>${detail}</td>
+                <td><strong>${totalPieces}</strong></td>
             </tr>`;
         });
         html += `</tbody></table></div>`;
