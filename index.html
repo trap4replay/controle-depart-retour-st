@@ -377,7 +377,7 @@ tr:hover td { background: #f8f0f2; }
 
             <!-- DIRECTION — en premier -->
             <label style="display:block; margin-bottom:10px; font-size:12px; font-weight:700; color:#444; text-transform:uppercase; letter-spacing:0.4px;">Direction *</label>
-            <div style="display:grid; grid-template-columns:1fr 1fr 1fr; gap:12px; margin-bottom:24px;">
+            <div style="display:grid; grid-template-columns:1fr 1fr 1fr 1fr; gap:12px; margin-bottom:24px;">
                 <div class="type-card" id="dir-depart" onclick="selectDir('depart')" style="border-color:#f5a623;">
                     <span class="type-icon">📤</span>
                     <span class="type-name">Départ ST</span>
@@ -389,6 +389,10 @@ tr:hover td { background: #f8f0f2; }
                 <div class="type-card" id="dir-silicone" onclick="selectDir('silicone')" style="border-color:#3b3bcc;">
                     <span class="type-icon">🔵</span>
                     <span class="type-name">Contrôle silicone</span>
+                </div>
+                <div class="type-card" id="dir-quick" onclick="selectDir('quick')" style="border-color:#e94560;">
+                    <span class="type-icon">⚡</span>
+                    <span class="type-name">Chrono rapide</span>
                 </div>
             </div>
             <input type="hidden" id="lotDirection">
@@ -818,6 +822,150 @@ tr:hover td { background: #f8f0f2; }
 
 </div><!-- /siliconeFlow -->
 
+<!-- ══════════════════════════════════════════════════════════════ -->
+<!-- FLUX CHRONO RAPIDE (déballage / emballage / ctrl sans OF)     -->
+<!-- ══════════════════════════════════════════════════════════════ -->
+<div id="quickFlow" class="hidden" style="padding:28px;">
+
+  <!-- ÉTAPE 1 : Direction + Activité + Type pièce -->
+  <div class="card" id="qf-setupSection">
+    <h2>⚡ Chrono rapide — Déclaration</h2>
+    <p style="color:#888;font-size:13px;margin-bottom:20px;">Mesure rapide sans parcours OF complet — déballage, emballage ou contrôle à la pièce.</p>
+
+    <!-- Direction -->
+    <label style="display:block;margin-bottom:10px;font-size:12px;font-weight:700;color:#444;text-transform:uppercase;letter-spacing:0.4px;">Direction *</label>
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:24px;">
+      <div class="type-card" id="qf-dir-depart" onclick="qfSelectDir('depart')" style="border-color:#f5a623;">
+        <span class="type-icon">📤</span><span class="type-name">Départ ST</span>
+      </div>
+      <div class="type-card" id="qf-dir-retour" onclick="qfSelectDir('retour')" style="border-color:#00b4d8;">
+        <span class="type-icon">📥</span><span class="type-name">Retour ST</span>
+      </div>
+    </div>
+
+    <!-- Activité chronométrée -->
+    <label style="display:block;margin-bottom:10px;font-size:12px;font-weight:700;color:#444;text-transform:uppercase;letter-spacing:0.4px;">Ce que je chronomètre *</label>
+    <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:12px;margin-bottom:24px;">
+      <div class="type-card" id="qf-act-deballage" onclick="qfSelectAct('deballage')" style="border-color:#e94560;">
+        <span class="type-icon">📦</span><span class="type-name">Déballage</span>
+      </div>
+      <div class="type-card" id="qf-act-emballage" onclick="qfSelectAct('emballage')" style="border-color:#f5a623;">
+        <span class="type-icon">📫</span><span class="type-name">Emballage</span>
+      </div>
+      <div class="type-card" id="qf-act-ctrl" onclick="qfSelectAct('ctrl')" style="border-color:#00b4d8;">
+        <span class="type-icon">🔍</span><span class="type-name">Contrôle</span>
+      </div>
+    </div>
+
+    <!-- Type de pièce -->
+    <label style="display:block;margin-bottom:10px;font-size:12px;font-weight:700;color:#444;text-transform:uppercase;letter-spacing:0.4px;">Type de pièce *</label>
+    <div class="type-grid" style="margin-bottom:24px;">
+      <div class="type-card" id="qf-type-corniere" onclick="qfSelectType('corniere')">
+        <span class="type-icon">📐</span><span class="type-name">Cornières</span>
+      </div>
+      <div class="type-card" id="qf-type-panier" onclick="qfSelectType('panier')">
+        <span class="type-icon">🧺</span><span class="type-name">Paniers</span>
+      </div>
+      <div class="type-card" id="qf-type-grainage" onclick="qfSelectType('grainage')">
+        <span class="type-icon">🔩</span><span class="type-name">Pièces grainage</span>
+      </div>
+      <div class="type-card" id="qf-type-petite" onclick="qfSelectType('petite')">
+        <span class="type-icon">🔹</span><span class="type-name">Petites pièces</span>
+      </div>
+      <div class="type-card" id="qf-type-plat" onclick="qfSelectType('plat')">
+        <span class="type-icon">▭</span><span class="type-name">Pièce à plat</span>
+      </div>
+      <div class="type-card" id="qf-type-corniere_sil" onclick="qfSelectType('corniere_sil')">
+        <span class="type-icon">📐</span><span class="type-name">Cornières (silicone)</span>
+      </div>
+      <div class="type-card" id="qf-type-panier_sil" onclick="qfSelectType('panier_sil')">
+        <span class="type-icon">🧺</span><span class="type-name">Paniers (silicone)</span>
+      </div>
+    </div>
+
+    <!-- Infos lot -->
+    <div class="fgrid" style="margin-bottom:20px;">
+      <div class="fgroup">
+        <label>Date *</label>
+        <input type="date" id="qf-date">
+      </div>
+      <div class="fgroup">
+        <label>Opérateur *</label>
+        <select id="qf-operateur">
+          <option value="">-- Sélectionner --</option>
+          <option>Stéphanie</option><option>Lillian</option><option>Stéphania</option>
+          <option>Elisabeth</option><option>Matthieu</option><option>Nicolas</option><option>Leila</option>
+        </select>
+      </div>
+      <div class="fgroup">
+        <label>N° Affaire</label>
+        <input type="text" id="qf-affaire" placeholder="Ex: A0015925" oninput="fmtAffaire(this)" onblur="fmtAffaire(this)">
+      </div>
+      <div class="fgroup">
+        <label>N° OF</label>
+        <input type="text" id="qf-of" placeholder="Ex: OF0015925" oninput="fmtOF(this)" onblur="fmtOF(this)">
+      </div>
+      <div class="fgroup">
+        <label>Référence</label>
+        <input type="text" id="qf-ref" placeholder="Ex: SP">
+      </div>
+      <div class="fgroup">
+        <label>Taille du lot</label>
+        <input type="number" id="qf-qt" placeholder="Ex: 100" min="1">
+      </div>
+    </div>
+
+    <div id="qf-setupErrors" style="color:#e94560;font-size:13px;margin-bottom:12px;display:none;"></div>
+    <button class="btn btn-main" onclick="qfStartChrono()">▶ Lancer le chrono</button>
+    <button class="btn btn-danger" style="margin-left:10px;" onclick="cancelQuickFlow()">❌ Annuler</button>
+  </div>
+
+  <!-- ÉTAPE 2 : Chrono + pièces -->
+  <div class="card hidden" id="qf-chronoSection">
+    <div class="lot-banner" id="qf-banner"></div>
+    <h2 id="qf-chronoTitle">⏱ Chrono</h2>
+    <p style="color:#888;font-size:13px;margin-bottom:16px;">Mesurez chaque pièce puis enregistrez. Répétez pour chaque pièce du lot.</p>
+
+    <div class="chrono-zone">
+      <div class="chrono-label" id="qf-chronoLabel">⏱ Temps</div>
+      <div class="chrono-row">
+        <span class="chrono-display" id="cd_qf">00:00</span>
+        <button type="button" class="btn-c start" id="cs_qf" onclick="startC('qf')">▶ Démarrer</button>
+        <button type="button" class="btn-c pause" id="cp_qf" onclick="pauseC('qf')" style="display:none">⏸ Pause</button>
+        <button type="button" class="btn-c stop"  id="ck_qf" onclick="stopC('qf')"  style="display:none">⏹ Arrêter</button>
+        <button type="button" class="btn-c reset" onclick="resetC('qf')">↺</button>
+      </div>
+      <div class="manual-input">
+        <input type="number" id="ci_qf" step="0.01" min="0" placeholder="0.00" oninput="manualC('qf')">
+        <span>min (saisie manuelle)</span>
+      </div>
+    </div>
+
+    <div class="fgroup" style="max-width:300px;margin-bottom:16px;">
+      <label>Observations (optionnel)</label>
+      <textarea id="qf-obs" rows="2" placeholder="Remarque..."></textarea>
+    </div>
+
+    <div style="display:flex;gap:10px;flex-wrap:wrap;margin-bottom:20px;">
+      <button class="btn btn-main" onclick="qfSavePiece()">➕ Enregistrer cette pièce</button>
+      <button class="btn btn-warn" onclick="qfFinish()">✅ Terminer la session</button>
+      <button class="btn btn-danger" onclick="cancelQuickFlow()">❌ Annuler</button>
+    </div>
+
+    <!-- Tableau live -->
+    <div class="live-table-wrap" id="qf-liveTable" style="display:none;">
+      <div class="live-table-header" id="qf-liveHeader">📋 Pièces mesurées</div>
+      <div style="overflow-x:auto;">
+        <table>
+          <thead><tr><th>#</th><th>Temps</th><th>Obs.</th></tr></thead>
+          <tbody id="qf-liveTbody"></tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+
+</div><!-- /quickFlow -->
+
 <!-- ══════════════════════════════════════════════ -->
 <!-- TAB HISTORIQUE                                 -->
 <!-- ══════════════════════════════════════════════ -->
@@ -1187,17 +1335,183 @@ function silFinishGamme() {
     goTab('historique');
 }
 
-// Intercepter la sélection de direction pour lancer le flux silicone
+// Intercepter la sélection de direction pour lancer le flux silicone ou chrono rapide
 const _origSelectDir = selectDir;
 function selectDir(d) {
     if (d === 'silicone') {
-        // Reset la sélection direction avant d'ouvrir le flux
         selectedDir = '';
-        ['depart','retour','silicone'].forEach(k => { const el=g('dir-'+k); if(el){el.className='type-card'; el.style.borderColor='';} });
+        ['depart','retour','silicone','quick'].forEach(k => { const el=g('dir-'+k); if(el){el.className='type-card'; el.style.borderColor='';} });
         showSiliconeFlow();
         return;
     }
+    if (d === 'quick') {
+        selectedDir = '';
+        ['depart','retour','silicone','quick'].forEach(k => { const el=g('dir-'+k); if(el){el.className='type-card'; el.style.borderColor='';} });
+        showQuickFlow();
+        return;
+    }
     _origSelectDir(d);
+}
+
+// ══════════════════════════════════════════════════════════════════
+// FLUX CHRONO RAPIDE
+// ══════════════════════════════════════════════════════════════════
+let qfState = { dir:'', act:'', type:'', pieces:[] };
+
+const QF_ACT_LABELS = { deballage:'📦 Déballage', emballage:'📫 Emballage', ctrl:'🔍 Contrôle' };
+const QF_TYPE_LABELS = {
+    corniere:'Cornières', panier:'Paniers', grainage:'Pièces grainage',
+    petite:'Petites pièces', plat:'Pièce à plat',
+    corniere_sil:'Cornières (silicone)', panier_sil:'Paniers (silicone)'
+};
+const QF_DIR_LABELS = { depart:'Départ ST', retour:'Retour ST' };
+
+function showQuickFlow() {
+    g('tab-saisie').classList.remove('active');
+    g('quickFlow').classList.remove('hidden');
+    g('quickFlow').style.display = '';
+    g('qf-setupSection').classList.remove('hidden');
+    g('qf-chronoSection').classList.add('hidden');
+    qfState = { dir:'', act:'', type:'', pieces:[] };
+    // Init date
+    const t = new Date();
+    g('qf-date').value = `${t.getFullYear()}-${String(t.getMonth()+1).padStart(2,'0')}-${String(t.getDate()).padStart(2,'0')}`;
+    // Reset cards
+    ['depart','retour'].forEach(k => { const el=g('qf-dir-'+k); if(el){el.className='type-card';} });
+    ['deballage','emballage','ctrl'].forEach(k => { const el=g('qf-act-'+k); if(el){el.className='type-card';} });
+    Object.keys(QF_TYPE_LABELS).forEach(k => { const el=g('qf-type-'+k); if(el){el.className='type-card';} });
+    g('qf-obs').value='';
+    g('qf-liveTable').style.display='none';
+    g('qf-liveTbody').innerHTML='';
+    resetC('qf');
+}
+
+function cancelQuickFlow() {
+    if (qfState.pieces.length > 0) {
+        if (!confirm('Annuler ? Les pièces déjà enregistrées seront perdues.')) return;
+    }
+    qfReset();
+}
+
+function qfReset() {
+    qfState = { dir:'', act:'', type:'', pieces:[] };
+    g('quickFlow').classList.add('hidden');
+    g('quickFlow').style.display = 'none';
+    g('tab-saisie').classList.add('active');
+    selectedDir = ''; selectedType = '';
+    ['depart','retour','silicone'].forEach(k => { const el=g('dir-'+k); if(el){el.className='type-card'; el.style.borderColor='';} });
+}
+
+function qfSelectDir(d) {
+    qfState.dir = d;
+    ['depart','retour'].forEach(k => {
+        const el = g('qf-dir-'+k);
+        if (!el) return;
+        el.className = 'type-card' + (k===d ? ' selected' : '');
+    });
+}
+
+function qfSelectAct(a) {
+    qfState.act = a;
+    ['deballage','emballage','ctrl'].forEach(k => {
+        const el = g('qf-act-'+k);
+        if (!el) return;
+        el.className = 'type-card' + (k===a ? ' selected' : '');
+    });
+}
+
+function qfSelectType(t) {
+    qfState.type = t;
+    Object.keys(QF_TYPE_LABELS).forEach(k => {
+        const el = g('qf-type-'+k);
+        if (!el) return;
+        el.className = 'type-card' + (k===t ? ' selected' : '');
+    });
+}
+
+function qfStartChrono() {
+    const errs = [];
+    if (!qfState.dir)  errs.push('Direction requise');
+    if (!qfState.act)  errs.push('Activité requise');
+    if (!qfState.type) errs.push('Type de pièce requis');
+    if (!g('qf-operateur').value) errs.push('Opérateur requis');
+    if (errs.length) { g('qf-setupErrors').textContent='⚠️ '+errs.join(' — '); g('qf-setupErrors').style.display='block'; return; }
+    g('qf-setupErrors').style.display='none';
+
+    const actLabel  = QF_ACT_LABELS[qfState.act];
+    const typeLabel = QF_TYPE_LABELS[qfState.type];
+    const dirLabel  = QF_DIR_LABELS[qfState.dir];
+
+    g('qf-banner').innerHTML = `
+        <h3>⚡ Chrono rapide — ${actLabel} · ${typeLabel}</h3>
+        <p>${g('qf-operateur').value} | ${dirLabel}${g('qf-affaire').value ? ' | '+g('qf-affaire').value : ''}${g('qf-of').value ? ' | '+g('qf-of').value : ''}</p>`;
+    g('qf-chronoTitle').textContent = `⏱ ${actLabel} — ${typeLabel}`;
+    g('qf-chronoLabel').textContent = actLabel + ' — pièce #' + (qfState.pieces.length+1);
+
+    g('qf-setupSection').classList.add('hidden');
+    g('qf-chronoSection').classList.remove('hidden');
+    resetC('qf');
+}
+
+function qfSavePiece() {
+    if (CS['qf']?.running) stopC('qf');
+    const t = getC('qf');
+    if (t <= 0) { alert('⚠️ Démarrez et arrêtez le chrono avant d\'enregistrer.'); return; }
+
+    qfState.pieces.push({ t, obs: g('qf-obs').value.trim() });
+    g('qf-obs').value = '';
+    resetC('qf');
+
+    // Mise à jour label
+    g('qf-chronoLabel').textContent = QF_ACT_LABELS[qfState.act] + ' — pièce #' + (qfState.pieces.length+1);
+
+    // Tableau live
+    g('qf-liveTable').style.display = 'block';
+    g('qf-liveHeader').textContent = `📋 ${qfState.pieces.length} pièce(s) enregistrée(s)`;
+    const fmtLocal = v => { const s=Math.round(v*60); const m=Math.floor(s/60); const ss=s%60; return m>0?`${m} min ${ss} s`:`${ss} s`; };
+    g('qf-liveTbody').innerHTML = qfState.pieces.map((p,i) =>
+        `<tr><td><strong>#${i+1}</strong></td><td>${fmtLocal(p.t)}</td><td>${p.obs||'—'}</td></tr>`
+    ).join('');
+}
+
+function qfFinish() {
+    if (!qfState.pieces.length) { alert('⚠️ Aucune pièce enregistrée.'); return; }
+
+    const date      = g('qf-date').value;
+    const operateur = g('qf-operateur').value;
+    const affaire   = g('qf-affaire').value.trim();
+    const of_       = g('qf-of').value.trim();
+    const ref       = g('qf-ref').value.trim() || '—';
+    const qt        = parseInt(g('qf-qt').value) || qfState.pieces.length;
+
+    // Déterminer quelle colonne temps remplir selon l'activité
+    qfState.pieces.forEach((p, i) => {
+        const entry = {
+            date, operateur, affaire, of: of_, ref,
+            qt, ech: qfState.pieces.length,
+            direction: qfState.dir,
+            type: qfState.type,
+            pieceNumber: i + 1,
+            tDossier:   0,
+            tDeballage: qfState.act === 'deballage' ? p.t : 0,
+            tCtrl:      qfState.act === 'ctrl'      ? p.t : 0,
+            tEmballage: qfState.act === 'emballage' ? p.t : 0,
+            tRangement: 0,
+            total:      p.t,
+            obs:        p.obs,
+            statut:     'Complet',
+            quickFlow:  true,
+            activite:   qfState.act,
+        };
+        data.push(entry);
+    });
+
+    save();
+    renderTable();
+    renderStats();
+    alert(`✅ Session enregistrée !\n${qfState.pieces.length} pièce(s) — ${QF_ACT_LABELS[qfState.act]} — ${QF_TYPE_LABELS[qfState.type]}`);
+    qfReset();
+    goTab('historique');
 }
 
 // ═══════════════════════════════════════════════
