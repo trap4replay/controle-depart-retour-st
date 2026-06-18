@@ -196,6 +196,7 @@ th {
     text-align: left; font-size: 11px;
     text-transform: uppercase; letter-spacing: 0.4px;
     white-space: nowrap;
+    box-shadow: 0 2px 4px rgba(0,0,0,0.15);
 }
 td { padding: 11px 10px; border-bottom: 1px solid #f0f0f0; color: #333; white-space: nowrap; }
 tr:hover td { background: #f8f0f2; }
@@ -928,9 +929,9 @@ tr:hover td { background: #f8f0f2; }
         </div>
         <div class="import-result" id="importResult"></div>
 
-        <div class="tbl-wrap">
-            <table>
-                <thead>
+        <div class="tbl-wrap" style="max-height: 70vh; overflow-y: auto; overflow-x: auto;">
+            <table style="border-collapse: collapse;">
+                <thead style="position: sticky; top: 0; z-index: 10;">
                     <tr>
                         <th>Date</th>
                         <th>Opérateur</th>
@@ -1741,21 +1742,18 @@ function renderTable() {
             ? r.modes
             : [r.tDeballage>0?'deballage':'', r.tCtrl>0?'ctrl':'', r.tEmballage>0?'emballage':''].filter(Boolean);
         const MODES_ALL = isSil
-            ? [{k:'ctrl', label:'🔵 Silicone (P1+P2)'}]
+            ? [{k:'ctrl', label:'🔍 Ctrl'}]
             : [{k:'deballage',label:'📦 Déballage'},{k:'ctrl',label:'🔍 Contrôle pièce'},{k:'emballage',label:'📫 Emballage'}];
-        const modesLabel = isSil ? '🔵 Silicone' :
-            (curModes.map(m=>m==='deballage'?'📦':m==='emballage'?'📫':'🔍').join('+') || '—');
+        const modesLabel = isSil
+            ? (curModes.includes('ctrl') ? '🔍 Ctrl' : '—')
+            : (curModes.map(m=>m==='deballage'?'📦':m==='emballage'?'📫':'🔍').join('+') || '—');
         const modesChecks = MODES_ALL.map(m =>
             `<label><input type="checkbox" ${curModes.includes(m.k)?'checked':''} onchange="editModes(${realIdx},this)">${m.label}</label>`
         ).join('');
-        const modesCell = isSil
-            ? `<span style="font-size:11px;color:#888;">🔵 Silicone</span>`
-            : `<div class="modes-wrap">
-                <button type="button" class="modes-btn" onclick="toggleModesDD(this)">${modesLabel} ▾</button>
-                <div class="modes-dropdown">
-                    ${modesChecks}
-                </div>
-               </div>`;
+        const modesCell = `<div class="modes-wrap">
+            <button type="button" class="modes-btn" onclick="toggleModesDD(this)">${modesLabel} ▾</button>
+            <div class="modes-dropdown">${modesChecks}</div>
+           </div>`;
 
         const tr = document.createElement('tr');
         tr.innerHTML = `
