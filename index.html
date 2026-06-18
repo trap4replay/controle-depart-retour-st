@@ -2045,11 +2045,11 @@ function renderStats() {
 function exportExcel() {
     if (!data.length) { alert('Aucune donnée à exporter.'); return; }
     const wb = XLSX.utils.book_new();
-    const types = ['corniere','panier','grainage','petite','plat','deballage','emballage','silicone'];
+    const types = ['corniere','panier','grainage','petite','plat','corniere-gr','silicone'];
     const COLS = [
-        {wch:12},{wch:14},{wch:12},{wch:12},{wch:14},{wch:18},
-        {wch:8},{wch:12},{wch:12},{wch:12},{wch:14},
-        {wch:16},{wch:18},{wch:16},{wch:14},{wch:20}
+        {wch:12},{wch:14},{wch:12},{wch:12},{wch:14},{wch:16},
+        {wch:26},{wch:20},{wch:8},{wch:12},{wch:14},
+        {wch:16},{wch:18},{wch:16},{wch:16},{wch:16},{wch:14},{wch:22}
     ];
 
     // Feuille 1 : Toutes les données brutes
@@ -2123,6 +2123,12 @@ function exportExcel() {
 }
 
 function toRow(r) {
+    const modes = (r.modes || []).map(m =>
+        m === 'deballage' ? 'Déballage' : m === 'emballage' ? 'Emballage' : 'Contrôle pièce'
+    ).join(' + ') || (r.tDeballage > 0 && r.tCtrl > 0 ? 'Déballage + Contrôle pièce' :
+                      r.tDeballage > 0 ? 'Déballage' :
+                      r.tEmballage > 0 && r.tCtrl > 0 ? 'Emballage + Contrôle pièce' :
+                      r.tEmballage > 0 ? 'Emballage' : 'Contrôle pièce');
     return {
         'Date':                  new Date(r.date).toLocaleDateString('fr-FR'),
         'Opérateur':             r.operateur,
@@ -2130,7 +2136,7 @@ function toRow(r) {
         'N° OF':                 r.of||'',
         'Référence':             r.ref,
         'Direction':             r.direction === 'depart' ? 'Départ ST' : r.direction === 'retour' ? 'Retour ST' : r.direction === 'silicone' ? 'Contrôle silicone' : '',
-        'Gamme (nb lots)':       r.nbLotsGamme || '',
+        'Ce qui est chronométré': modes,
         'Type de pièce':         TYPE_LABELS[r.type]||r.type,
         'Pièce N°':              Number(r.pieceNumber),
         'Taille lot':            Number(r.qt),
