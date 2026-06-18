@@ -483,6 +483,10 @@ tr:hover td { background: #f8f0f2; }
                         <span class="type-icon">📐🔩</span>
                         <span class="type-name">Cornières grainage</span>
                     </div>
+                    <div class="type-card" id="type-couvercle" onclick="selectType('couvercle')">
+                        <span class="type-icon">🪣</span>
+                        <span class="type-name">Couvercles</span>
+                    </div>
                 </div>
                 <input type="hidden" id="lotType">
             </div>
@@ -896,6 +900,8 @@ tr:hover td { background: #f8f0f2; }
                 <option value="grainage">Grainage</option>
                 <option value="petite">Petites pièces</option>
                 <option value="plat">Pièce à plat</option>
+                <option value="corniere-gr">Cornières grainage</option>
+                <option value="couvercle">Couvercles</option>
                 <option value="deballage">Déballage</option>
                 <option value="emballage">Emballage</option>
             </select>
@@ -984,10 +990,10 @@ let selectedType = '';
 let selectedDir  = '';
 let selectedModes = new Set(); // 'deballage' | 'emballage' | 'ctrl'
 
-const TYPE_LABELS = { corniere:'Cornières', panier:'Paniers', grainage:'Pièces grainage', petite:'Petites pièces', plat:'Pièce à plat', 'corniere-gr':'Cornières grainage', silicone:'Contrôle silicone' };
+const TYPE_LABELS = { corniere:'Cornières', panier:'Paniers', grainage:'Pièces grainage', petite:'Petites pièces', plat:'Pièce à plat', 'corniere-gr':'Cornières grainage', couvercle:'Couvercles', silicone:'Contrôle silicone' };
 const TYPE_BADGES = {
     corniere:'badge-corniere', panier:'badge-panier',
-    grainage:'badge-grainage', petite:'badge-petite', plat:'badge-plat', 'corniere-gr':'badge-corniere', silicone:'badge-silicone'
+    grainage:'badge-grainage', petite:'badge-petite', plat:'badge-plat', 'corniere-gr':'badge-corniere', couvercle:'badge-panier', silicone:'badge-silicone'
 };
 
 function toggleMode(m) {
@@ -1308,7 +1314,7 @@ function goTab(id) {
 function selectType(t) {
     selectedType = t;
     document.getElementById('lotType').value = t;
-    ['corniere','panier','grainage','petite','plat','corniere-gr'].forEach(k => {
+    ['corniere','panier','grainage','petite','plat','corniere-gr','couvercle'].forEach(k => {
         const el = document.getElementById('type-'+k);
         if (el) el.className = 'type-card' + (k===t ? ' selected' : '');
     });
@@ -1617,7 +1623,7 @@ function resetAll() {
     g('lotForm').reset();
     const t = new Date();
     g('lotDate').value = `${t.getFullYear()}-${String(t.getMonth()+1).padStart(2,'0')}-${String(t.getDate()).padStart(2,'0')}`;
-    ['corniere','panier','grainage','petite','plat','deballage','emballage'].forEach(k => {
+    ['corniere','panier','grainage','petite','plat','corniere-gr','couvercle','deballage','emballage'].forEach(k => {
         g('type-'+k).className = 'type-card';
     });
     g('dir-depart').className  = 'type-card';
@@ -1705,6 +1711,7 @@ function renderTable() {
             <option value="petite"      ${r.type==='petite'      ?'selected':''}>🔹 Petites pièces</option>
             <option value="plat"        ${r.type==='plat'        ?'selected':''}>▭ Pièce à plat</option>
             <option value="corniere-gr" ${r.type==='corniere-gr' ?'selected':''}>📐🔩 Cornières grainage</option>
+            <option value="couvercle"   ${r.type==='couvercle'   ?'selected':''}>🪣 Couvercles</option>
         </select>`;
         const dirSelect = `<select class="dir-edit-select" onchange="editDir(${realIdx},this.value)">
             <option value="depart"   ${r.direction==='depart'   ?'selected':''}>📤 Départ ST</option>
@@ -2043,7 +2050,7 @@ function fmtH(mins) {
 }
 
 // ═══════════════════════════════════════════════
-// STATS ENRICHIES
+// STATS ENRICHIES — format tableau comme Excel
 // ═══════════════════════════════════════════════
 function renderStats() {
     const c = g('statsContainer');
@@ -2051,233 +2058,223 @@ function renderStats() {
         c.innerHTML = '<p style="text-align:center;color:#999;padding:60px;font-size:15px;">Aucune donnée pour le moment.</p>';
         return;
     }
-    const types = ['corniere','panier','grainage','petite','plat','deballage','emballage','silicone'];
     let html = '';
 
-    // ═══════════════════════════════════════════
-    // Calcul par OF — base pour toutes les stats
-    // Pour chaque OF on stocke :
-    //   qt (taille du lot réel), echReel (pièces mesurées),
-    //   avgCtrl (moyenne ctrl sur l'échantillon → on l'applique à qt pour estimer le lot entier)
-    // ═══════════════════════════════════════════
-    const ofMap = {};
-    data.forEach(r => {
-        const key = r.of || '—';
-        if (!ofMap[key]) ofMap[key] = {
-            of: key, affaire: r.affaire, ref: r.ref, type: r.type,
-            direction: r.direction,
-            qt: r.qt || 0,
-            tDossier: 0, tRangement: 0, tDeballage: 0, tEmballage: 0,
-            echPieces: 0,
-            tCtrlEch: 0,
-        };
-        ofMap[key].tDossier   += (r.tDossier||0);
-        ofMap[key].tRangement += (r.tRangement||0);
-        ofMap[key].tDeballage += (r.tDeballage||0);
-        ofMap[key].tEmballage += (r.tEmballage||0);
-        ofMap[key].echPieces++;
-        ofMap[key].tCtrlEch   += r.tCtrl;
-        // On prend le qt du lot (peut évoluer si plusieurs lignes — on garde le max)
-        if ((r.qt||0) > ofMap[key].qt) ofMap[key].qt = r.qt;
-    });
+    // ── Calcul par OF ──
+    const ofMap = buildOfMap(data);
+    const ofList = Object.values(ofMap).sort((a,b) => a.of.localeCompare(b.of));
 
-    // Pour chaque OF : tCtrlLot = somme mesurée (silicone : 2 pièces fixes, pas d'extrapolation)
-    //                            = avgCtrlPiece × qt pour les autres directions
-    Object.values(ofMap).forEach(of => {
-        of.avgCtrlPiece = of.echPieces > 0 ? of.tCtrlEch / of.echPieces : 0;
-        of.tCtrlLot     = of.direction === 'silicone'
-            ? of.tCtrlEch                      // somme réelle des 2 pièces mesurées
-            : of.avgCtrlPiece * of.qt;         // extrapolation sur taille de lot
-        of.totalOF      = of.tDossier + of.tCtrlLot + of.tRangement + of.tDeballage + of.tEmballage;
-    });
-    const ofList = Object.values(ofMap).sort((a,b)=>a.of.localeCompare(b.of));
-
-    // ── 1. VUE PAR DIRECTION ──
-    const DIR_LABELS = { depart: '📤 Départ ST', retour: '📥 Retour ST', silicone: '🔵 Contrôle silicone' };
+    const DIR_LABELS = { depart:'Départ ST', retour:'Retour ST', silicone:'Contrôle silicone' };
     const dirKeys = ['depart','retour','silicone'];
-    const lots    = ofList.length;
-    const lotsIncomplets = new Set(data.filter(r=>r.statut==='Incomplet').map(r=>r.ref+'|'+r.of)).size;
 
-    html += `<div class="card"><h2><svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><line x1="2" y1="12" x2="22" y2="12"/><path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z"/></svg>Vue par direction</h2>
-        <hr class="card-sep">
-        <p class="card-sub">Moyennes calculées sur les OF et lignes appartenant à chaque direction</p>
-        <div class="stats-row">
-            <div class="stat-box amber"><h4>Lots (OF)</h4><div class="val">${lots}</div></div>
-            <div class="stat-box red"><h4>Lots incomplets</h4><div class="val">${lotsIncomplets}</div></div>
-        </div>
-        <table class="stats-tbl">
-        <thead><tr>
-            <th>Direction</th>
-            <th>Lignes / pièces</th>
-            <th>OF concernés</th>
-            <th>Tps moyen / pièce (ctrl)</th>
-            <th>Tps total moyen ctrl / OF</th>
-            <th>Tps moyen dossier / OF</th>
-            <th>Tps moyen rangement / OF</th>
-            <th>Tps moyen déballage / OF</th>
-            <th>Tps moyen emballage / OF</th>
-        </tr></thead>
-        <tbody>`;
+    function statsTable(ofs, title) {
+        if (!ofs.length) return '';
+        const cols = ['N° OF','Direction','Ce qui est chronométré','Type','Lot','Echantillon',
+            'Tps dossier','Tps déballage','Tps emballage','Tps ctrl total','Tps rangement',
+            'Tps total par Echantillon','Temps unitaire','Tps total par OF'];
+
+        let rows = '';
+        ofs.forEach(of => {
+            const modeLabel = of.modes.length ? of.modes.map(m=>m==='deballage'?'Déballage':m==='emballage'?'Emballage':'Contrôle de pièces').join(' + ')
+                : (of.tCtrlEch>0?'Contrôle de pièces':'') + (of.tDeballage>0?' + Déballage':'') + (of.tEmballage>0?' + Emballage':'') || 'Contrôle de pièces';
+            rows += `<tr>
+                <td class="mono">${of.of}</td>
+                <td>${DIR_LABELS[of.direction]||of.direction||'—'}</td>
+                <td>${modeLabel}</td>
+                <td><span class="badge ${TYPE_BADGES[of.type]||''}">${TYPE_LABELS[of.type]||of.type}</span></td>
+                <td style="text-align:right">${of.qt}</td>
+                <td style="text-align:right">${of.echPieces}</td>
+                <td style="text-align:right">${of.tDossier>0?fmt(of.tDossier):'—'}</td>
+                <td style="text-align:right">${of.tDeballage>0?fmt(of.tDeballage):'—'}</td>
+                <td style="text-align:right">${of.tEmballage>0?fmt(of.tEmballage):'—'}</td>
+                <td style="text-align:right">${of.tCtrlEch>0?fmt(of.tCtrlEch):'—'}</td>
+                <td style="text-align:right">${of.tRangement>0?fmt(of.tRangement):'—'}</td>
+                <td style="text-align:right;font-weight:600">${fmt(of.totalEch)}</td>
+                <td style="text-align:right">${fmt(of.tUnitaire)}</td>
+                <td style="text-align:right;font-weight:700;color:#0f3460">${of.direction==='silicone'?'—':fmt(of.totalOF)}</td>
+            </tr>`;
+        });
+
+        // Ligne totaux/moyennes
+        const totLot    = ofs.reduce((s,o)=>s+o.qt,0);
+        const totEch    = ofs.reduce((s,o)=>s+o.echPieces,0);
+        const totDoss   = ofs.reduce((s,o)=>s+o.tDossier,0);
+        const totDeb    = ofs.reduce((s,o)=>s+o.tDeballage,0);
+        const totEmb    = ofs.reduce((s,o)=>s+o.tEmballage,0);
+        const totCtrl   = ofs.reduce((s,o)=>s+o.tCtrlEch,0);
+        const totRang   = ofs.reduce((s,o)=>s+o.tRangement,0);
+        const avgUnit   = totEch > 0 ? ofs.reduce((s,o)=>s+o.tUnitaire*o.echPieces,0)/totEch : 0;
+
+        rows += `<tr class="total-row">
+            <td colspan="4">TOTAUX / MOYENNES</td>
+            <td style="text-align:right">${totLot}</td>
+            <td style="text-align:right">${totEch}</td>
+            <td style="text-align:right">${totDoss>0?fmt(totDoss):'—'}</td>
+            <td style="text-align:right">${totDeb>0?fmt(totDeb):'—'}</td>
+            <td style="text-align:right">${totEmb>0?fmt(totEmb):'—'}</td>
+            <td style="text-align:right">${totCtrl>0?fmt(totCtrl):'—'}</td>
+            <td style="text-align:right">${totRang>0?fmt(totRang):'—'}</td>
+            <td></td>
+            <td style="text-align:right">${fmt(avgUnit)}</td>
+            <td></td>
+        </tr>`;
+
+        const thCols = cols.map(col => `<th>${col}</th>`).join('');
+        return `<div class="card" style="margin-bottom:28px;">
+            <h2>${title}</h2><hr class="card-sep">
+            <div style="overflow-x:auto;">
+            <table class="stats-tbl">
+                <thead><tr>${thCols}</tr></thead>
+                <tbody>${rows}</tbody>
+            </table></div></div>`;
+    }
+
+    // Vue globale
+    html += statsTable(ofList, `<svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="18" height="18" rx="2"/><line x1="3" y1="9" x2="21" y2="9"/><line x1="9" y1="21" x2="9" y2="9"/></svg> Vue globale`);
+
+    // Par direction
     dirKeys.forEach(dk => {
-        const rows = data.filter(r => r.direction === dk);
-        if (!rows.length) return;
-        const ofsDir = ofList.filter(of => data.some(r => r.of === of.of && r.direction === dk));
-        const avgCtrlD = rows.reduce((s,r)=>s+(r.tCtrl||0),0) / rows.length;
-        const avgDossD = ofsDir.length ? ofsDir.reduce((s,o)=>s+o.tDossier,0) / ofsDir.length : 0;
-        const avgRangD = ofsDir.length ? ofsDir.reduce((s,o)=>s+o.tRangement,0) / ofsDir.length : 0;
-        const avgDebD  = ofsDir.length ? ofsDir.reduce((s,o)=>s+o.tDeballage,0) / ofsDir.length : 0;
-        const avgEmbD  = ofsDir.length ? ofsDir.reduce((s,o)=>s+o.tEmballage,0) / ofsDir.length : 0;
-        // Tps total moyen ctrl/OF = moyenne par OF de (avgCtrlPiece × qt)
-        const avgCtrlTotOF = ofsDir.length ? ofsDir.reduce((s,o)=>s+o.tCtrlLot,0) / ofsDir.length : 0;
-        const ctrlDetail = dk === 'silicone'
-            ? `<span style="font-size:10px;color:#aaa;">(somme 2 pièces mesurées)</span>`
-            : `<span style="font-size:10px;color:#aaa;">(${fmt(avgCtrlD)}×moy. lot)</span>`;
-        html += `<tr>
-            <td><strong>${DIR_LABELS[dk]}</strong></td>
-            <td>${rows.length}</td>
-            <td>${ofsDir.length}</td>
-            <td>${fmt(avgCtrlD)}</td>
-            <td>${avgCtrlTotOF > 0 ? fmt(avgCtrlTotOF) + ` ${ctrlDetail}` : '—'}</td>
-            <td>${avgDossD > 0 ? fmt(avgDossD) : '—'}</td>
-            <td>${avgRangD > 0 ? fmt(avgRangD) : '—'}</td>
-            <td>${avgDebD > 0 ? fmt(avgDebD) : '—'}</td>
-            <td>${avgEmbD > 0 ? fmt(avgEmbD) : '—'}</td>
-        </tr>`;
+        const ofs = ofList.filter(o => o.direction === dk);
+        if (!ofs.length) return;
+        const icon = dk==='depart'?'📤':dk==='retour'?'📥':'🔵';
+        html += statsTable(ofs, `${icon} ${DIR_LABELS[dk]}`);
     });
-    html += `</tbody></table></div>`;
-
-    // ── 2. TEMPS DE DOSSIER PAR OF ──
-    const totDoss = ofList.reduce((s,o)=>s+o.tDossier,0);
-    const DIR_LABELS_SHORT = { depart: '📤 Départ ST', retour: '📥 Retour ST', silicone: '🔵 Silicone' };
-
-    html += `<div class="card"><h2><svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z"/></svg>Temps de dossier par OF</h2>
-    <hr class="card-sep">
-    <p class="card-sub">Temps de préparation du dossier de fabrication uniquement — saisi une fois par OF</p>
-    <table class="stats-tbl">
-        <thead><tr>
-            <th>N° OF</th>
-            <th>Direction</th>
-            <th>Type de pièce</th>
-            <th>Tps dossier</th>
-        </tr></thead>
-        <tbody>`;
-    ofList.forEach(of => {
-        html += `<tr>
-            <td class="mono">${of.of}</td>
-            <td>${DIR_LABELS_SHORT[of.direction] || of.direction || '—'}</td>
-            <td><span class="badge ${TYPE_BADGES[of.type]||''}">${TYPE_LABELS[of.type]||of.type}</span></td>
-            <td><strong>${fmt(of.tDossier)}</strong></td>
-        </tr>`;
-    });
-
-    // Moyennes par direction+type
-    const moyMap = {};
-    ofList.forEach(of => {
-        const k = (of.direction||'—') + '|' + (of.type||'—');
-        if (!moyMap[k]) moyMap[k] = { direction: of.direction, type: of.type, total: 0, count: 0 };
-        if (of.tDossier > 0) { moyMap[k].total += of.tDossier; moyMap[k].count++; }
-    });
-    const avgDoss = ofList.filter(o=>o.tDossier>0).length
-        ? totDoss / ofList.filter(o=>o.tDossier>0).length : 0;
-    html += `<tr class="total-row">
-        <td colspan="3">MOYENNE GLOBALE</td>
-        <td>${fmt(avgDoss)} <span style="font-size:10px;color:#bbb;">(${ofList.filter(o=>o.tDossier>0).length} OF)</span></td>
-    </tr>`;
-    Object.values(moyMap).filter(m=>m.count>0).sort((a,b)=>a.direction.localeCompare(b.direction)).forEach(m => {
-        html += `<tr style="background:rgba(0,0,0,0.03);font-size:12px;color:#666;">
-            <td colspan="2" style="padding-left:18px;">↳ ${DIR_LABELS_SHORT[m.direction]||m.direction} — <span class="badge ${TYPE_BADGES[m.type]||''}" style="font-size:10px;">${TYPE_LABELS[m.type]||m.type}</span></td>
-            <td>moy.</td>
-            <td>${fmt(m.total/m.count)} <span style="font-size:10px;color:#aaa;">(${m.count} OF)</span></td>
-        </tr>`;
-    });
-
-    html += `</tbody></table></div>`;
 
     c.innerHTML = html;
 }
 
+function buildOfMap(rows) {
+    const ofMap = {};
+    rows.forEach(r => {
+        const key = (r.of||'—') + '|' + (r.direction||'');
+        if (!ofMap[key]) ofMap[key] = {
+            of: r.of||'—', affaire: r.affaire, ref: r.ref, type: r.type,
+            direction: r.direction,
+            qt: r.qt || 0,
+            tDossier:0, tRangement:0, tDeballage:0, tEmballage:0,
+            echPieces:0, tCtrlEch:0,
+            modes: r.modes || [],
+        };
+        const o = ofMap[key];
+        o.tDossier   += (r.tDossier||0);
+        o.tRangement += (r.tRangement||0);
+        o.tDeballage += (r.tDeballage||0);
+        o.tEmballage += (r.tEmballage||0);
+        o.echPieces++;
+        o.tCtrlEch   += (r.tCtrl||0);
+        if ((r.qt||0) > o.qt) o.qt = r.qt;
+        if (r.modes && r.modes.length && !o.modes.length) o.modes = r.modes;
+    });
+    Object.values(ofMap).forEach(o => {
+        // Tps total par échantillon = tout ce qui est mesuré sur l'échantillon
+        o.totalEch  = o.tDossier + o.tDeballage + o.tEmballage + o.tCtrlEch + o.tRangement;
+        // Temps unitaire = total éch / nb pièces mesurées
+        o.tUnitaire = o.echPieces > 0 ? o.totalEch / o.echPieces : 0;
+        // Temps total par OF = extrapolation sur lot entier (ctrl+déb+emb × qt, dossier+rangement 1x)
+        const avgCtrl = o.echPieces > 0 ? o.tCtrlEch / o.echPieces : 0;
+        const avgDeb  = o.echPieces > 0 ? o.tDeballage / o.echPieces : 0;
+        const avgEmb  = o.echPieces > 0 ? o.tEmballage / o.echPieces : 0;
+        o.totalOF = o.tDossier + (avgCtrl + avgDeb + avgEmb) * o.qt + o.tRangement;
+    });
+    return ofMap;
+}
+
 // ═══════════════════════════════════════════════
-// EXPORT EXCEL — UNE FEUILLE PAR TYPE DE PIÈCE
+// EXPORT EXCEL — format identique aux stats site
 // ═══════════════════════════════════════════════
 function exportExcel() {
     if (!data.length) { alert('Aucune donnée à exporter.'); return; }
     const wb = XLSX.utils.book_new();
-    const types = ['corniere','panier','grainage','petite','plat','corniere-gr','silicone'];
-    const COLS = [
-        {wch:12},{wch:14},{wch:12},{wch:12},{wch:14},{wch:16},
-        {wch:26},{wch:20},{wch:8},{wch:12},{wch:14},
-        {wch:16},{wch:18},{wch:16},{wch:16},{wch:16},{wch:14},{wch:22}
+
+    const ofMap  = buildOfMap(data);
+    const ofList = Object.values(ofMap).sort((a,b) => a.of.localeCompare(b.of));
+    const DIR_LABELS = { depart:'Départ ST', retour:'Retour ST', silicone:'Contrôle silicone' };
+    const dirKeys = ['depart','retour','silicone'];
+
+    const COL_WIDTHS = [
+        {wch:14},{wch:16},{wch:30},{wch:20},{wch:7},{wch:11},
+        {wch:16},{wch:16},{wch:16},{wch:16},{wch:16},
+        {wch:22},{wch:14},{wch:18}
     ];
 
-    // Feuille 1 : Toutes les données brutes
-    const wsAll = XLSX.utils.json_to_sheet(data.map(toRow));
-    wsAll['!cols'] = COLS;
-    XLSX.utils.book_append_sheet(wb, wsAll, 'Toutes les données');
+    function fmtMin(v) {
+        // En minutes décimales pour Excel (recalculable), affiché comme nombre
+        return v > 0 ? +v.toFixed(4) : 0;
+    }
 
-    // Feuilles 2-5 : une par type
-    types.forEach(type => {
-        const rows = data.filter(r => r.type === type);
-        if (!rows.length) return;
-        const ws = XLSX.utils.json_to_sheet(rows.map(toRow));
-        ws['!cols'] = COLS;
-        XLSX.utils.book_append_sheet(wb, ws, TYPE_LABELS[type]);
-    });
+    function ofToStatsRow(o) {
+        const modeLabel = o.modes.length
+            ? o.modes.map(m=>m==='deballage'?'Déballage':m==='emballage'?'Emballage':'Contrôle de pièces').join(' + ')
+            : (o.tCtrlEch>0?'Contrôle de pièces':'') + (o.tDeballage>0?'+Déballage':'') + (o.tEmballage>0?'+Emballage':'') || 'Contrôle de pièces';
+        return {
+            'N° OF':                      o.of,
+            'Direction':                  DIR_LABELS[o.direction]||o.direction||'',
+            'Ce qui est chronométré':     modeLabel,
+            'Type de pièce':              TYPE_LABELS[o.type]||o.type,
+            'Lot':                        o.qt,
+            'Echantillon':                o.echPieces,
+            'Tps dossier (min)':          fmtMin(o.tDossier),
+            'Tps déballage (min)':        fmtMin(o.tDeballage),
+            'Tps emballage (min)':        fmtMin(o.tEmballage),
+            'Tps ctrl total (min)':       fmtMin(o.tCtrlEch),
+            'Tps rangement (min)':        fmtMin(o.tRangement),
+            'Tps total par Echantillon (min)': fmtMin(o.totalEch),
+            'Temps unitaire (min)':       fmtMin(o.tUnitaire),
+            'Tps total par OF (min)':     o.direction==='silicone' ? '' : fmtMin(o.totalOF),
+        };
+    }
 
-    // Feuille Stats : résumé par type
-    const statsRows = [];
-    types.forEach(type => {
-        const rows = data.filter(r => r.type === type);
-        if (!rows.length) return;
-        const avg = rows.reduce((s,r)=>s+r.tCtrl,0)/rows.length;
-        const mn  = Math.min(...rows.map(r=>r.tCtrl));
-        const mx  = Math.max(...rows.map(r=>r.tCtrl));
-        statsRows.push({
-            'Type de pièce':           TYPE_LABELS[type],
-            'Nb pièces':               rows.length,
-            'Tps ctrl moyen (min)':    +avg.toFixed(2),
-            'Tps ctrl min (min)':      +mn.toFixed(2),
-            'Tps ctrl max (min)':      +mx.toFixed(2),
-            'Total ctrl cumulé (h)':   +(rows.reduce((s,r)=>s+r.tCtrl,0)/60).toFixed(2),
+    function addTotalsRow(wsData, ofs) {
+        const totLot  = ofs.reduce((s,o)=>s+o.qt,0);
+        const totEch  = ofs.reduce((s,o)=>s+o.echPieces,0);
+        const totDoss = ofs.reduce((s,o)=>s+o.tDossier,0);
+        const totDeb  = ofs.reduce((s,o)=>s+o.tDeballage,0);
+        const totEmb  = ofs.reduce((s,o)=>s+o.tEmballage,0);
+        const totCtrl = ofs.reduce((s,o)=>s+o.tCtrlEch,0);
+        const totRang = ofs.reduce((s,o)=>s+o.tRangement,0);
+        const avgUnit = totEch>0 ? ofs.reduce((s,o)=>s+o.tUnitaire*o.echPieces,0)/totEch : 0;
+        wsData.push({
+            'N° OF': 'TOTAUX / MOYENNES',
+            'Direction': '', 'Ce qui est chronométré': '', 'Type de pièce': '',
+            'Lot': totLot, 'Echantillon': totEch,
+            'Tps dossier (min)':       fmtMin(totDoss),
+            'Tps déballage (min)':     fmtMin(totDeb),
+            'Tps emballage (min)':     fmtMin(totEmb),
+            'Tps ctrl total (min)':    fmtMin(totCtrl),
+            'Tps rangement (min)':     fmtMin(totRang),
+            'Tps total par Echantillon (min)': '',
+            'Temps unitaire (min)':    fmtMin(avgUnit),
+            'Tps total par OF (min)':  '',
         });
-    });
-    // Par OF
-    const ofStats = [];
-    const ofMap2 = {};
-    data.forEach(r => {
-        const key = r.of||'—';
-        if (!ofMap2[key]) ofMap2[key] = { of:key, affaire:r.affaire, ref:r.ref, type:r.type, tDossier:0, tRangement:0, tDeballage:0, tEmballage:0, pieces:0, tCtrlTotal:0 };
-        ofMap2[key].tDossier   += (r.tDossier||0);
-        ofMap2[key].tRangement += (r.tRangement||0);
-        ofMap2[key].tDeballage += (r.tDeballage||0);
-        ofMap2[key].tEmballage += (r.tEmballage||0);
-        ofMap2[key].pieces++;
-        ofMap2[key].tCtrlTotal += r.tCtrl;
-    });
-    Object.values(ofMap2).forEach(of => {
-        ofStats.push({
-            'N° OF':                  of.of,
-            'N° Affaire':             of.affaire,
-            'Référence':              of.ref,
-            'Type':                   TYPE_LABELS[of.type]||of.type,
-            'Pièces mesurées':        of.pieces,
-            'Tps dossier (min)':      +of.tDossier.toFixed(2),
-            'Tps déballage (min)':    +of.tDeballage.toFixed(2),
-            'Tps emballage (min)':    +of.tEmballage.toFixed(2),
-            'Tps ctrl total (min)':   +of.tCtrlTotal.toFixed(2),
-            'Tps rangement (min)':    +of.tRangement.toFixed(2),
-            'Total OF (min)':         +(of.tDossier+of.tDeballage+of.tEmballage+of.tCtrlTotal+of.tRangement).toFixed(2),
-        });
+    }
+
+    // Feuille "Vue globale"
+    const allRows = ofList.map(ofToStatsRow);
+    const allData = [...allRows];
+    addTotalsRow(allData, ofList);
+    const wsAll = XLSX.utils.json_to_sheet(allData);
+    wsAll['!cols'] = COL_WIDTHS;
+    XLSX.utils.book_append_sheet(wb, wsAll, 'Vue globale');
+
+    // Feuilles par direction
+    dirKeys.forEach(dk => {
+        const ofs = ofList.filter(o => o.direction === dk);
+        if (!ofs.length) return;
+        const dirData = [...ofs.map(ofToStatsRow)];
+        addTotalsRow(dirData, ofs);
+        const ws = XLSX.utils.json_to_sheet(dirData);
+        ws['!cols'] = COL_WIDTHS;
+        XLSX.utils.book_append_sheet(wb, ws, DIR_LABELS[dk]);
     });
 
-    const wsStats = XLSX.utils.json_to_sheet(statsRows);
-    XLSX.utils.book_append_sheet(wb, wsStats, 'Stats par type');
-
-    // Ajouter les stats OF sous les stats type sur la même feuille ou feuille séparée
-    const wsOF = XLSX.utils.json_to_sheet(ofStats);
-    XLSX.utils.book_append_sheet(wb, wsOF, 'Stats par OF');
+    // Feuille "Toutes les données brutes"
+    const wsRaw = XLSX.utils.json_to_sheet(data.map(toRow));
+    wsRaw['!cols'] = [{wch:12},{wch:14},{wch:12},{wch:12},{wch:14},{wch:16},{wch:26},{wch:20},{wch:8},{wch:12},{wch:14},{wch:16},{wch:18},{wch:16},{wch:16},{wch:16},{wch:14},{wch:22}];
+    XLSX.utils.book_append_sheet(wb, wsRaw, 'Toutes les données');
 
     XLSX.writeFile(wb, `EXALTA_ST_${new Date().toISOString().split('T')[0]}.xlsx`);
 }
+
 
 function toRow(r) {
     const modes = (r.modes || []).map(m =>
