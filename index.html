@@ -1048,10 +1048,11 @@ function silReset() {
     ['sil-gammeSection','sil-dossierOuvSection','sil-lotSection','sil-dossierCloSection'].forEach(id => g(id).classList.add('hidden'));
     g('siliconeFlow').classList.add('hidden');
     g('siliconeFlow').style.display = 'none';
-    // Réafficher le tab saisie normal
-    g('tab-saisie').classList.add('active');
     selectedDir = ''; selectedType = '';
-    ['depart','retour','silicone'].forEach(k => { g('dir-'+k).className='type-card'; g('dir-'+k).style.borderColor=''; });
+    ['depart','retour','silicone'].forEach(k => { const el = g('dir-'+k); if(el){el.className='type-card'; el.style.borderColor='';} });
+    goTab('saisie');
+    g('lotSection').classList.remove('hidden');
+    g('saisieSection').classList.add('hidden');
 }
 
 function silSetStep(step) {
@@ -1624,7 +1625,10 @@ function resetAll() {
     renderTable(); renderStats();
 }
 function cancelLot() {
-    if (confirm('Annuler ? Les pièces déjà saisies sont conservées.')) resetAll();
+    if (confirm('Annuler ? Les pièces déjà saisies sont conservées.')) {
+        resetAll();
+        goTab('saisie');
+    }
 }
 
 // ═══════════════════════════════════════════════
