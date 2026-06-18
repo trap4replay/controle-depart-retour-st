@@ -1483,17 +1483,6 @@ document.getElementById('pieceForm').addEventListener('submit', function(e) {
         return;
     }
 
-    // Dossier : accepté sur la 1ère pièce uniquement (ouverture OF)
-    // Il sera de nouveau demandé sur la dernière pièce (clôture OF) — géré dans updatePieceUI
-    const isFirst = currentPiece === 1;
-    const isLast  = currentPiece === currentLot.ech;
-    const tDossierFinal = (isFirst || isLast) ? tDossier : 0;
-
-    // Déballage : toujours pris en compte
-    const tDeballageFinal = tDeballage;
-    // Emballage : toujours pris en compte
-    const tEmballageFinal = tEmballage;
-
     const entry = {
         date:        currentLot.date,
         operateur:   currentLot.operateur,
@@ -1505,12 +1494,12 @@ document.getElementById('pieceForm').addEventListener('submit', function(e) {
         type:        currentLot.type,
         direction:   currentLot.direction,
         pieceNumber: currentPiece,
-        tDossier:    tDossierFinal,
-        tDeballage:  tDeballageFinal,
-        tEmballage:  tEmballageFinal,
+        tDossier:    tDossier,
+        tDeballage:  tDeballage,
+        tEmballage:  tEmballage,
         tCtrl:       tCtrl,
         tRangement:  tRangement,
-        total:       tDossierFinal + tDeballageFinal + tEmballageFinal + tCtrl + tRangement,
+        total:       tDossier + tDeballage + tEmballage + tCtrl + tRangement,
         obs:         g('pieceObs').value.trim()
     };
     data.push(entry);
@@ -1522,9 +1511,10 @@ document.getElementById('pieceForm').addEventListener('submit', function(e) {
         currentPiece++;
         updatePieceUI();
         resetC('ctrl');
+        resetC('dossier');
         resetC('deballage');
         resetC('emballage');
-        resetC('rangement');   // rangement reset à chaque pièce
+        resetC('rangement');
         g('pieceObs').value = '';
         // Dossier : visible seulement sur 1ère et dernière pièce
         updateDossierVisibility();
@@ -1541,25 +1531,12 @@ function updatePieceUI() {
 }
 
 function updateDossierVisibility() {
-    const isFirst = currentPiece === 1;
-    const isLast  = currentPiece === currentLot.ech;
+    // Dossier toujours actif sur chaque pièce
     const dz = g('dossierZone');
     const dl = g('dossierLabel');
-    if (isFirst) {
-        dz.style.opacity = '1';
-        dz.style.pointerEvents = '';
-        dl.innerHTML = '📁 Temps de préparation du dossier de fab <span style="font-weight:400; color:#bbb;">(1ère pièce : ouverture OF)</span>';
-    } else if (isLast) {
-        dz.style.opacity = '1';
-        dz.style.pointerEvents = '';
-        dl.innerHTML = '📁 Temps de clôture du dossier de fab <span style="font-weight:400; color:#bbb;">(dernière pièce : remplissage OF)</span>';
-        resetC('dossier');   // reset pour saisir le temps de clôture
-    } else {
-        dz.style.opacity = '0.3';
-        dz.style.pointerEvents = 'none';
-        dl.innerHTML = '📁 Dossier <span style="font-weight:400; color:#bbb;">(non applicable — pièces intermédiaires)</span>';
-        resetC('dossier');
-    }
+    dz.style.opacity = '1';
+    dz.style.pointerEvents = '';
+    dl.innerHTML = '📁 Temps de préparation / clôture du dossier <span style="font-weight:400; color:#bbb;">(optionnel — chaque pièce)</span>';
 }
 
 function renderLiveTable() {
