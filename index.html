@@ -894,23 +894,22 @@ tr:hover td { background: #f8f0f2; }
                     <tr>
                         <th>Date</th>
                         <th>Opérateur</th>
-                        <th>Affaire</th>
-                        <th>OF</th>
-                        <th>Réf.</th>
+                        <th>N° Affaire</th>
+                        <th>N° OF</th>
+                        <th>Référence</th>
                         <th>Direction</th>
-                        <th>Gamme (lots)</th>
-                        <th>Type pièce</th>
+                        <th>Ce qui est chronométré</th>
+                        <th>Type de pièce</th>
                         <th>Pièce N°</th>
                         <th>Taille lot</th>
-                        <th>Échantillon</th>
-                        <th>Dossier</th>
-                        <th>Déballage</th>
-                        <th>Ctrl pièce</th>
-                        <th>Emballage</th>
-                        <th>Rangement</th>
-                        <th>Total</th>
-                        <th>Obs.</th>
-                        <th>Statut</th>
+                        <th>Taille échantillon</th>
+                        <th>Tps dossier (min)</th>
+                        <th>Tps déballage (min)</th>
+                        <th>Tps emballage (min)</th>
+                        <th>Tps ctrl pièce (min)</th>
+                        <th>Tps rangement (min)</th>
+                        <th>Total (min)</th>
+                        <th>Observations</th>
                         <th></th>
                     </tr>
                 </thead>
@@ -1657,31 +1656,31 @@ function renderTable() {
         const isSil = r.direction === 'silicone';
         const realIdx = data.indexOf(r);
         const typeSelect = `<select class="dir-edit-select" onchange="changeType(${realIdx}, this.value)">
-            <option value="corniere"  ${r.type==='corniere'  ? 'selected' : ''}>📐 Cornières</option>
-            <option value="panier"    ${r.type==='panier'    ? 'selected' : ''}>🧺 Paniers</option>
-            <option value="grainage"  ${r.type==='grainage'  ? 'selected' : ''}>🔩 Pièces grainage</option>
-            <option value="petite"    ${r.type==='petite'    ? 'selected' : ''}>🔹 Petites pièces</option>
-            <option value="plat"      ${r.type==='plat'      ? 'selected' : ''}>▭ Pièce à plat</option>
-            <option value="deballage" ${r.type==='deballage' ? 'selected' : ''}>📦 Déballage</option>
-            <option value="emballage" ${r.type==='emballage' ? 'selected' : ''}>📫 Emballage</option>
+            <option value="corniere"    ${r.type==='corniere'    ? 'selected' : ''}>📐 Cornières</option>
+            <option value="panier"      ${r.type==='panier'      ? 'selected' : ''}>🧺 Paniers</option>
+            <option value="grainage"    ${r.type==='grainage'    ? 'selected' : ''}>🔩 Pièces grainage</option>
+            <option value="petite"      ${r.type==='petite'      ? 'selected' : ''}>🔹 Petites pièces</option>
+            <option value="plat"        ${r.type==='plat'        ? 'selected' : ''}>▭ Pièce à plat</option>
+            <option value="corniere-gr" ${r.type==='corniere-gr' ? 'selected' : ''}>📐🔩 Cornières grainage</option>
         </select>`;
-        const statutBadge = (r.statut === 'Incomplet')
-            ? `<span class="badge badge-incomplet">⚠️ Incomplet (${r.echReel ?? '?'}/${r.ech})</span>`
-            : `<span class="badge badge-complet">✅ Complet</span>`;
         const dirSelect = `<select class="dir-edit-select" onchange="changeDirection(${realIdx}, this.value)">
                 <option value="depart"   ${r.direction==='depart'   ? 'selected' : ''}>📤 Départ ST</option>
                 <option value="retour"   ${r.direction==='retour'   ? 'selected' : ''}>📥 Retour ST</option>
                 <option value="silicone" ${r.direction==='silicone' ? 'selected' : ''}>🔵 Ctrl silicone</option>
             </select>`;
-        // Colonne ctrl : pour silicone on affiche P1 + P2 détaillés, sinon tCtrl
+        // Ce qui est chronométré
+        const modes = (r.modes || []).map(m =>
+            m==='deballage'?'📦 Déballage':m==='emballage'?'📫 Emballage':'🔍 Contrôle'
+        ).join(' + ') || (isSil ? '🔵 Silicone' :
+            [r.tDeballage>0?'📦 Déballage':'', r.tCtrl>0?'🔍 Contrôle':'', r.tEmballage>0?'📫 Emballage':'']
+            .filter(Boolean).join(' + ') || '—');
+        // Ctrl cell
         const ctrlCell = isSil
             ? `<span title="P1: ${fmt(r.tP1||0)} / P2: ${fmt(r.tP2||0)}">🔧${fmt(r.tP1||0)} + 🔍${fmt(r.tP2||0)}</span>`
             : fmt(r.tCtrl);
-        // Colonne comptage (silicone) ou rangement
         const extraCell = isSil
             ? `${(r.tComptage||0)>0 ? '🧮'+fmt(r.tComptage)+(r.nbComptees?' ('+r.nbComptees+' pcs)':'') : '—'}`
             : `${(r.tRangement||0)>0 ? fmt(r.tRangement) : '—'}`;
-        const extraLabel = isSil ? 'Comptage' : 'Rangement';
         const tr = document.createElement('tr');
         tr.innerHTML = `
             <td>${new Date(r.date).toLocaleDateString('fr-FR')}</td>
@@ -1690,19 +1689,18 @@ function renderTable() {
             <td>${r.of||'-'}</td>
             <td><strong>${r.ref}</strong></td>
             <td>${dirSelect}</td>
-            <td>${isSil && r.nbLotsGamme ? `<strong>${r.nbLotsGamme}</strong> lot${r.nbLotsGamme>1?'s':''} <span title="${getGammeSummary(r.gammeAffaire || r.affaire)}" style="cursor:help;color:#aaa;">ℹ️</span>` : '—'}</td>
+            <td style="font-size:12px;">${modes}</td>
             <td>${typeSelect}</td>
             <td>#${r.pieceNumber}</td>
             <td>${r.qt}</td>
             <td>${r.ech||'-'}</td>
             <td>${r.tDossier > 0 ? fmt(r.tDossier) : '—'}</td>
-            <td>${(r.tDeballage||0) > 0 ? fmt(r.tDeballage) : (isSil ? '—' : '—')}</td>
-            <td>${ctrlCell}</td>
+            <td>${(r.tDeballage||0) > 0 ? fmt(r.tDeballage) : '—'}</td>
             <td>${(r.tEmballage||0) > 0 ? fmt(r.tEmballage) : '—'}</td>
+            <td>${ctrlCell}</td>
             <td>${extraCell}</td>
             <td><strong>${fmt(r.total)}</strong></td>
             <td>${r.obs||'—'}</td>
-            <td>${statutBadge}</td>
             <td><button class="btn btn-danger btn-sm" onclick="deleteRow(${data.indexOf(r)})">🗑️</button></td>`;
         tbody.appendChild(tr);
     });
