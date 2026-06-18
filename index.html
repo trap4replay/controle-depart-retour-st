@@ -1049,7 +1049,8 @@ function silReset() {
     g('siliconeFlow').classList.add('hidden');
     g('siliconeFlow').style.display = 'none';
     selectedDir = ''; selectedType = '';
-    ['depart','retour','silicone'].forEach(k => { const el = g('dir-'+k); if(el){el.className='type-card'; el.style.borderColor='';} });
+    ['depart','retour','silicone'].forEach(k => { const el = g('dir-'+k); if(el){ el.className='type-card'; el.style.borderColor=''; } });
+    ['corniere','panier','grainage','petite','plat','corniere-gr','couvercle'].forEach(k => { const el = g('type-'+k); if(el) el.className='type-card'; });
     goTab('saisie');
     g('lotSection').classList.remove('hidden');
     g('saisieSection').classList.add('hidden');
@@ -1622,12 +1623,16 @@ function resetAll() {
     resetC('ctrl');
     g('lotSection').classList.remove('hidden');
     g('saisieSection').classList.add('hidden');
+    // Toujours revenir sur l'onglet saisie avec le bouton actif
+    goTab('saisie');
     renderTable(); renderStats();
 }
 function cancelLot() {
     if (confirm('Annuler ? Les pièces déjà saisies sont conservées.')) {
         resetAll();
         goTab('saisie');
+        g('lotSection').classList.remove('hidden');
+        g('saisieSection').classList.add('hidden');
     }
 }
 
