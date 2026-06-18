@@ -233,6 +233,24 @@ tr:hover td { background: #f8f0f2; }
     font-weight: 600;
     padding: 6px;
 }
+.cell-input {
+    border: 1px solid transparent;
+    background: transparent;
+    border-radius: 6px;
+    padding: 3px 6px;
+    font-size: 12px;
+    font-family: inherit;
+    color: inherit;
+    width: 100%;
+    min-width: 60px;
+    box-sizing: border-box;
+    transition: border-color 0.15s, background 0.15s;
+}
+.cell-input:hover { border-color: #ccc; background: #f9f9f9; }
+.cell-input:focus { outline: none; border-color: #0f3460; background: #fff; box-shadow: 0 0 0 2px rgba(15,52,96,0.1); }
+.cell-input.num { text-align: right; max-width: 80px; }
+.cell-input.wide { min-width: 90px; }
+.cell-input[type="date"] { min-width: 120px; }
 
 /* STATS */
 .stats-row { display: grid; grid-template-columns: repeat(auto-fit, minmax(160px, 1fr)); gap: 14px; margin-bottom: 22px; }
@@ -894,22 +912,22 @@ tr:hover td { background: #f8f0f2; }
                     <tr>
                         <th>Date</th>
                         <th>Opérateur</th>
-                        <th>N° Affaire</th>
-                        <th>N° OF</th>
-                        <th>Référence</th>
+                        <th>Affaire</th>
+                        <th>OF</th>
+                        <th>Réf.</th>
                         <th>Direction</th>
                         <th>Ce qui est chronométré</th>
-                        <th>Type de pièce</th>
+                        <th>Type pièce</th>
                         <th>Pièce N°</th>
                         <th>Taille lot</th>
-                        <th>Taille échantillon</th>
-                        <th>Tps dossier (min)</th>
-                        <th>Tps déballage (min)</th>
-                        <th>Tps emballage (min)</th>
-                        <th>Tps ctrl pièce (min)</th>
-                        <th>Tps rangement (min)</th>
-                        <th>Total (min)</th>
-                        <th>Observations</th>
+                        <th>Échantillon</th>
+                        <th>Dossier</th>
+                        <th>Déballage</th>
+                        <th>Ctrl pièce</th>
+                        <th>Emballage</th>
+                        <th>Rangement</th>
+                        <th>Total</th>
+                        <th>Obs.</th>
                         <th></th>
                     </tr>
                 </thead>
@@ -1655,53 +1673,79 @@ function renderTable() {
     filtered.forEach((r) => {
         const isSil = r.direction === 'silicone';
         const realIdx = data.indexOf(r);
-        const typeSelect = `<select class="dir-edit-select" onchange="changeType(${realIdx}, this.value)">
-            <option value="corniere"    ${r.type==='corniere'    ? 'selected' : ''}>📐 Cornières</option>
-            <option value="panier"      ${r.type==='panier'      ? 'selected' : ''}>🧺 Paniers</option>
-            <option value="grainage"    ${r.type==='grainage'    ? 'selected' : ''}>🔩 Pièces grainage</option>
-            <option value="petite"      ${r.type==='petite'      ? 'selected' : ''}>🔹 Petites pièces</option>
-            <option value="plat"        ${r.type==='plat'        ? 'selected' : ''}>▭ Pièce à plat</option>
-            <option value="corniere-gr" ${r.type==='corniere-gr' ? 'selected' : ''}>📐🔩 Cornières grainage</option>
+
+        // ── Selects ──
+        const typeSelect = `<select class="dir-edit-select" onchange="editField(${realIdx},'type',this.value)">
+            <option value="corniere"    ${r.type==='corniere'    ?'selected':''}>📐 Cornières</option>
+            <option value="panier"      ${r.type==='panier'      ?'selected':''}>🧺 Paniers</option>
+            <option value="grainage"    ${r.type==='grainage'    ?'selected':''}>🔩 Pièces grainage</option>
+            <option value="petite"      ${r.type==='petite'      ?'selected':''}>🔹 Petites pièces</option>
+            <option value="plat"        ${r.type==='plat'        ?'selected':''}>▭ Pièce à plat</option>
+            <option value="corniere-gr" ${r.type==='corniere-gr' ?'selected':''}>📐🔩 Cornières grainage</option>
         </select>`;
-        const dirSelect = `<select class="dir-edit-select" onchange="changeDirection(${realIdx}, this.value)">
-                <option value="depart"   ${r.direction==='depart'   ? 'selected' : ''}>📤 Départ ST</option>
-                <option value="retour"   ${r.direction==='retour'   ? 'selected' : ''}>📥 Retour ST</option>
-                <option value="silicone" ${r.direction==='silicone' ? 'selected' : ''}>🔵 Ctrl silicone</option>
-            </select>`;
-        // Ce qui est chronométré
+        const dirSelect = `<select class="dir-edit-select" onchange="editDir(${realIdx},this.value)">
+            <option value="depart"   ${r.direction==='depart'   ?'selected':''}>📤 Départ ST</option>
+            <option value="retour"   ${r.direction==='retour'   ?'selected':''}>📥 Retour ST</option>
+            <option value="silicone" ${r.direction==='silicone' ?'selected':''}>🔵 Ctrl silicone</option>
+        </select>`;
+        const opSelect = `<select class="dir-edit-select" onchange="editField(${realIdx},'operateur',this.value)">
+            <option value="Stéphanie"  ${r.operateur==='Stéphanie'  ?'selected':''}>Stéphanie</option>
+            <option value="Lillian"    ${r.operateur==='Lillian'    ?'selected':''}>Lillian</option>
+            <option value="Stéphania" ${r.operateur==='Stéphania' ?'selected':''}>Stéphania</option>
+            <option value="Elisabeth"  ${r.operateur==='Elisabeth'  ?'selected':''}>Elisabeth</option>
+            <option value="Matthieu"   ${r.operateur==='Matthieu'   ?'selected':''}>Matthieu</option>
+            <option value="Nicolas"    ${r.operateur==='Nicolas'    ?'selected':''}>Nicolas</option>
+            <option value="Leila"      ${r.operateur==='Leila'      ?'selected':''}>Leila</option>
+        </select>`;
+
+        // ── Champ ctrl : simple pour départ/retour, P1+P2 pour silicone ──
+        const ctrlCell = isSil
+            ? `<span style="font-size:11px;">
+                🔧<input type="number" class="cell-input num" style="max-width:52px" step="0.01" min="0"
+                    value="${(r.tP1||0).toFixed(2)}" onchange="editNum(${realIdx},'tP1',this.value)">
+                + 🔍<input type="number" class="cell-input num" style="max-width:52px" step="0.01" min="0"
+                    value="${(r.tP2||0).toFixed(2)}" onchange="editNum(${realIdx},'tP2',this.value)">
+               </span>`
+            : `<input type="number" class="cell-input num" step="0.01" min="0"
+                value="${(r.tCtrl||0).toFixed(2)}" onchange="editNum(${realIdx},'tCtrl',this.value)">`;
+        const extraCell = isSil
+            ? `<input type="number" class="cell-input num" step="0.01" min="0"
+                value="${(r.tComptage||0).toFixed(2)}" onchange="editNum(${realIdx},'tComptage',this.value)">`
+            : `<input type="number" class="cell-input num" step="0.01" min="0"
+                value="${(r.tRangement||0).toFixed(2)}" onchange="editNum(${realIdx},'tRangement',this.value)">`;
+
+        // ── Ce qui est chronométré ──
         const modes = (r.modes || []).map(m =>
             m==='deballage'?'📦 Déballage':m==='emballage'?'📫 Emballage':'🔍 Contrôle'
         ).join(' + ') || (isSil ? '🔵 Silicone' :
             [r.tDeballage>0?'📦 Déballage':'', r.tCtrl>0?'🔍 Contrôle':'', r.tEmballage>0?'📫 Emballage':'']
             .filter(Boolean).join(' + ') || '—');
-        // Ctrl cell
-        const ctrlCell = isSil
-            ? `<span title="P1: ${fmt(r.tP1||0)} / P2: ${fmt(r.tP2||0)}">🔧${fmt(r.tP1||0)} + 🔍${fmt(r.tP2||0)}</span>`
-            : fmt(r.tCtrl);
-        const extraCell = isSil
-            ? `${(r.tComptage||0)>0 ? '🧮'+fmt(r.tComptage)+(r.nbComptees?' ('+r.nbComptees+' pcs)':'') : '—'}`
-            : `${(r.tRangement||0)>0 ? fmt(r.tRangement) : '—'}`;
+
         const tr = document.createElement('tr');
         tr.innerHTML = `
-            <td>${new Date(r.date).toLocaleDateString('fr-FR')}</td>
-            <td>${r.operateur}</td>
-            <td>${r.affaire||'-'}</td>
-            <td>${r.of||'-'}</td>
-            <td><strong>${r.ref}</strong></td>
+            <td><input type="date" class="cell-input" value="${r.date||''}" onchange="editField(${realIdx},'date',this.value)"></td>
+            <td>${opSelect}</td>
+            <td><input type="text" class="cell-input wide" value="${r.affaire||''}"
+                onchange="editField(${realIdx},'affaire',this.value)"
+                oninput="fmtAffaireInline(this)" onblur="fmtAffaireInline(this)"></td>
+            <td><input type="text" class="cell-input wide" value="${r.of||''}"
+                onchange="editField(${realIdx},'of',this.value)"
+                oninput="fmtOFInline(this,${realIdx})" onblur="fmtOFInline(this,${realIdx})"></td>
+            <td><input type="text" class="cell-input wide" value="${r.ref||''}" onchange="editField(${realIdx},'ref',this.value)"></td>
             <td>${dirSelect}</td>
-            <td style="font-size:12px;">${modes}</td>
+            <td style="font-size:11px;color:#888;">${modes}</td>
             <td>${typeSelect}</td>
-            <td>#${r.pieceNumber}</td>
-            <td>${r.qt}</td>
-            <td>${r.ech||'-'}</td>
-            <td>${r.tDossier > 0 ? fmt(r.tDossier) : '—'}</td>
-            <td>${(r.tDeballage||0) > 0 ? fmt(r.tDeballage) : '—'}</td>
-            <td>${(r.tEmballage||0) > 0 ? fmt(r.tEmballage) : '—'}</td>
+            <td><input type="number" class="cell-input num" min="1" value="${r.pieceNumber||1}" onchange="editNum(${realIdx},'pieceNumber',this.value)"></td>
+            <td><input type="number" class="cell-input num" min="0" value="${r.qt||0}" onchange="editNum(${realIdx},'qt',this.value)"></td>
+            <td><input type="number" class="cell-input num" min="0" value="${r.ech||0}" onchange="editNum(${realIdx},'ech',this.value)"></td>
+            <td><input type="number" class="cell-input num" step="0.01" min="0" value="${(r.tDossier||0).toFixed(2)}" onchange="editNum(${realIdx},'tDossier',this.value)"></td>
+            <td><input type="number" class="cell-input num" step="0.01" min="0" value="${(r.tDeballage||0).toFixed(2)}" onchange="editNum(${realIdx},'tDeballage',this.value)"></td>
+            <td><input type="number" class="cell-input num" step="0.01" min="0" value="${(r.tEmballage||0).toFixed(2)}" onchange="editNum(${realIdx},'tEmballage',this.value)"></td>
             <td>${ctrlCell}</td>
             <td>${extraCell}</td>
-            <td><strong>${fmt(r.total)}</strong></td>
-            <td>${r.obs||'—'}</td>
-            <td><button class="btn btn-danger btn-sm" onclick="deleteRow(${data.indexOf(r)})">🗑️</button></td>`;
+            <td style="font-weight:700;text-align:right;padding-right:8px;">${fmt(r.total)}</td>
+            <td><input type="text" class="cell-input wide" value="${r.obs||''}" onchange="editField(${realIdx},'obs',this.value)"></td>
+            <td><button class="btn btn-danger btn-sm" onclick="deleteRow(${realIdx})">🗑️</button></td>`;
         tbody.appendChild(tr);
     });
 }
@@ -1709,33 +1753,76 @@ function deleteRow(i) {
     if (!confirm('Supprimer cette ligne ?')) return;
     data.splice(i,1); save(); renderTable(); renderStats();
 }
-function changeDirection(i, newDir) {
+
+// Recalcule le total d'une ligne après modification d'un temps
+function recalcTotal(i) {
+    const r = data[i];
+    if (!r) return;
+    const tCtrl = r.direction === 'silicone'
+        ? (r.tP1||0) + (r.tP2||0)
+        : (r.tCtrl||0);
+    r.tCtrl = tCtrl;
+    r.total = (r.tDossier||0) + (r.tDeballage||0) + tCtrl + (r.tEmballage||0)
+            + (r.tRangement||0) + (r.tComptage||0);
+}
+
+// Édition champ texte / date / select
+function editField(i, field, value) {
+    if (!data[i]) return;
+    data[i][field] = value;
+    save();
+    // On re-render seulement les stats pour ne pas perdre le focus
+    renderStats();
+}
+
+// Édition champ numérique (temps, quantités)
+function editNum(i, field, value) {
+    if (!data[i]) return;
+    const num = parseFloat(value);
+    data[i][field] = isNaN(num) ? 0 : Math.max(0, num);
+    recalcTotal(i);
+    save();
+    // Met à jour juste la cellule Total sans re-render tout le tableau
+    const rows = document.querySelectorAll('#mainTbody tr');
+    // Trouver la ligne correspondante par son bouton supprimer
+    rows.forEach(tr => {
+        const btn = tr.querySelector('button');
+        if (btn && btn.getAttribute('onclick') === `deleteRow(${i})`) {
+            const tds = tr.querySelectorAll('td');
+            // Total = avant-dernière td avant obs et bouton (index 16)
+            tds[16].textContent = data[i].total > 0 ? `${data[i].total.toFixed(2)} min` : '—';
+        }
+    });
+    renderStats();
+}
+
+// Édition direction avec avertissement si changement silicone ↔ autre
+function editDir(i, newDir) {
     if (!data[i]) return;
     const oldDir = data[i].direction;
     if (oldDir === newDir) return;
-    const wasSil = oldDir === 'silicone';
-    const willBeSil = newDir === 'silicone';
-    if (wasSil !== willBeSil) {
+    if ((oldDir === 'silicone') !== (newDir === 'silicone')) {
         const ok = confirm(
-            'Le contrôle silicone utilise une structure de temps différente (P1/P2 + comptage) par rapport à Départ/Retour ST (contrôle simple).\n\n' +
-            'Changer la direction ne convertit pas les temps déjà saisis — certaines colonnes pourront apparaître vides ou incohérentes.\n\n' +
-            'Continuer le changement ?'
+            'Le contrôle silicone utilise une structure différente (P1/P2 + comptage).\n' +
+            'Changer la direction ne convertit pas les temps — certaines colonnes peuvent être incohérentes.\n\nContinuer ?'
         );
         if (!ok) { renderTable(); return; }
     }
     data[i].direction = newDir;
+    recalcTotal(i);
     save();
     renderTable();
     renderStats();
 }
-function changeType(i, newType) {
-    if (!data[i]) return;
-    const oldType = data[i].type;
-    if (oldType === newType) return;
-    data[i].type = newType;
-    save();
-    renderTable();
-    renderStats();
+
+// Auto-format OF/Affaire inline dans le tableau
+function fmtAffaireInline(el) {
+    const f = fmtCode(el.value, 'A', 7);
+    if (f !== el.value) el.value = f;
+}
+function fmtOFInline(el, idx) {
+    const f = fmtCode(el.value, 'OF', 7);
+    if (f !== el.value) el.value = f;
 }
 
 // ═══════════════════════════════════════════════
